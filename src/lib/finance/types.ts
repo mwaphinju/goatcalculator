@@ -178,23 +178,13 @@ export interface LoanPayoffInput {
 
 export type LoanPayoffScenarioReason = "amortizing" | "non-amortizing" | "exceeds-max";
 
-export interface LoanPayoffScheduleRow {
-  month: number;
-  startingBalance: string;
-  interest: string;
-  /** Total amount actually applied this month (required + any extra), after capping at the amount owed. */
-  payment: string;
-  principal: string;
-  endingBalance: string;
-}
-
 export interface LoanPayoffScenarioResult {
   reason: LoanPayoffScenarioReason;
   /** The first month the balance reaches zero, or null if non-amortizing or the horizon was exceeded. */
   monthsToPayoff: number | null;
   totalPaid: string;
   totalInterest: string;
-  schedule: LoanPayoffScheduleRow[];
+  schedule: LoanScheduleRow[];
   /**
    * Any requested one-time extra payment that was never actually applied
    * (either because the loan paid off before the requested month, or

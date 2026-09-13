@@ -74,6 +74,46 @@ test.describe("CSV export", () => {
     expect(csv).toContain("Month,Baseline balance,Alternative balance,Difference");
   });
 
+  test("loan payment CSV includes assumptions and the amortization schedule, and reconciles with the displayed payment", async ({ page }) => {
+    await page.goto("/calculators/loan-payment");
+    await page.getByLabel(/^Loan amount/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Loan term/).fill("12");
+
+    const paymentValue = await page
+      .locator(`dl > div:has(dt:text-is("Estimated monthly payment")) dd`)
+      .innerText();
+
+    const csv = await readDownload(page, async () => {
+      await page.getByRole("button", { name: "Download CSV" }).click();
+    });
+
+    expect(csv).toContain("GOAT Calculator: Loan payment calculator");
+    expect(csv).toMatch(/Generated,.+\d{4}/);
+    expect(csv).toContain("Payment frequency,Monthly");
+    expect(csv).toContain('"Excludes fees, taxes, insurance, escrow and APR",Yes');
+    expect(csv).toContain("Month,Starting balance,Payment,Principal,Interest,Ending balance");
+    expect(csv).toContain(`Estimated monthly payment,${paymentValue.trim()}`);
+  });
+
+  test("loan payoff CSV includes both scenarios and the monthly comparison rows", async ({ page }) => {
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("6");
+    await page.getByLabel(/^Required monthly payment/).fill("200");
+    await page.getByLabel(/^Extra monthly payment/).fill("50");
+
+    const csv = await readDownload(page, async () => {
+      await page.getByRole("button", { name: "Download CSV" }).click();
+    });
+
+    expect(csv).toContain("GOAT Calculator: Loan payoff calculator");
+    expect(csv).toContain("Baseline result,amortizing");
+    expect(csv).toContain("Extra payment result,amortizing");
+    expect(csv).toContain("Months saved,13");
+    expect(csv).toContain("Month,Baseline balance,Extra payment balance");
+  });
+
   test("no financial values appear in the page URL after downloading", async ({ page }) => {
     await page.goto("/calculators/savings-goal");
     await page.getByLabel(/^Target balance/).fill("12345");
@@ -130,5 +170,41 @@ test.describe("Print-friendly view", () => {
     await expect(page.locator("header").first()).toBeHidden();
     await expect(page.getByRole("button", { name: "Print this result" })).toBeHidden();
     await expect(page.getByText("Final balance difference")).toBeVisible();
+  });
+
+  test("loan payment: print view hides chrome, forces assumptions open, and keeps the schedule", async ({ page }) => {
+    await page.goto("/calculators/loan-payment");
+    await page.getByLabel(/^Loan amount/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Loan term/).fill("12");
+
+    const detailsWithAssumptions = page.locator("details", { has: page.getByText("Payment frequency") });
+    await expect(detailsWithAssumptions).not.toHaveJSProperty("open", true);
+
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator("header").first()).toBeHidden();
+    await expect(page.getByRole("button", { name: "Print this result" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Download CSV" })).toBeHidden();
+
+    await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+    await expect(detailsWithAssumptions).toHaveJSProperty("open", true);
+    await expect(page.getByText("Payment frequency", { exact: true })).toBeVisible();
+
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    await expect(detailsWithAssumptions).toHaveJSProperty("open", false);
+  });
+
+  test("loan payoff: print view hides chrome but keeps the comparison content", async ({ page }) => {
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("6");
+    await page.getByLabel(/^Required monthly payment/).fill("200");
+    await page.getByLabel(/^Extra monthly payment/).fill("50");
+
+    await page.emulateMedia({ media: "print" });
+
+    await expect(page.locator("header").first()).toBeHidden();
+    await expect(page.getByRole("button", { name: "Print this result" })).toBeHidden();
+    await expect(page.getByText("Months saved")).toBeVisible();
   });
 });

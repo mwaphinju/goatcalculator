@@ -156,4 +156,43 @@ test.describe("Screenshots of key UI states", () => {
     await page.getByText("Try an example").first().click();
     await page.screenshot({ path: `${DIR}/16-savings-comparison-320.png`, fullPage: true });
   });
+
+  test("loan payment — with a result", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1800 });
+    await page.goto("/calculators/loan-payment");
+    await page.getByLabel(/^Loan amount/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Loan term/).fill("12");
+    await page.getByText("Assumptions used").click();
+    await page.screenshot({ path: `${DIR}/17-loan-payment-result.png`, fullPage: true });
+  });
+
+  test("loan payoff — baseline and extra payment comparison", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 2200 });
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("6");
+    await page.getByLabel(/^Required monthly payment/).fill("200");
+    await page.getByLabel(/^Extra monthly payment/).fill("50");
+    await page.screenshot({ path: `${DIR}/18-loan-payoff-comparison.png`, fullPage: true });
+  });
+
+  test("loan payoff — non-amortizing result", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Required monthly payment/).fill("50");
+    await page.screenshot({ path: `${DIR}/19-loan-payoff-non-amortizing.png`, fullPage: true });
+  });
+
+  test("loan payoff — at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("6");
+    await page.getByLabel(/^Required monthly payment/).fill("200");
+    await page.getByLabel(/^Extra monthly payment/).fill("50");
+    await page.screenshot({ path: `${DIR}/20-loan-payoff-320.png`, fullPage: true });
+  });
 });

@@ -75,6 +75,35 @@ export default function CalculatorsPage() {
             </p>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/calculators/loan-payment"
+            className="block rounded-lg border border-border bg-surface p-5 hover:border-teal"
+          >
+            <h2 className="mb-1 font-semibold text-navy">
+              Loan payment calculator
+            </h2>
+            <p className="text-sm text-navy-soft">
+              Estimate the monthly principal and interest payment on a
+              loan with a fixed interest rate, with a full amortization
+              schedule.
+            </p>
+          </Link>
+        </li>
+        <li>
+          <Link
+            href="/calculators/loan-payoff"
+            className="block rounded-lg border border-border bg-surface p-5 hover:border-teal"
+          >
+            <h2 className="mb-1 font-semibold text-navy">
+              Loan payoff calculator
+            </h2>
+            <p className="text-sm text-navy-soft">
+              See how extra payments could shorten a loan&apos;s payoff time
+              and reduce interest, compared to a baseline.
+            </p>
+          </Link>
+        </li>
       </ul>
     </div>
   );

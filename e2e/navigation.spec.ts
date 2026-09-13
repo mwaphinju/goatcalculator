@@ -5,6 +5,8 @@ const IMPLEMENTED_CALCULATOR_ROUTES = [
   "/calculators/savings-goal",
   "/calculators/savings-time",
   "/calculators/savings-comparison",
+  "/calculators/loan-payment",
+  "/calculators/loan-payoff",
 ];
 
 test.describe("Direct navigation to implemented routes", () => {
@@ -58,6 +60,22 @@ test.describe("Direct navigation to implemented routes", () => {
     ).toBeVisible();
   });
 
+  test("/calculators/loan-payment loads directly", async ({ page }) => {
+    const response = await page.goto("/calculators/loan-payment");
+    expect(response?.status()).toBeLessThan(400);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Loan payment calculator" }),
+    ).toBeVisible();
+  });
+
+  test("/calculators/loan-payoff loads directly", async ({ page }) => {
+    const response = await page.goto("/calculators/loan-payoff");
+    expect(response?.status()).toBeLessThan(400);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Loan payoff calculator" }),
+    ).toBeVisible();
+  });
+
   test("/methodology loads directly", async ({ page }) => {
     const response = await page.goto("/methodology");
     expect(response?.status()).toBeLessThan(400);
@@ -70,17 +88,17 @@ test.describe("Direct navigation to implemented routes", () => {
     await expect(page).toHaveURL(/\/calculators\/compound-interest/);
   });
 
-  test("homepage links to all four calculators", async ({ page }) => {
+  test("homepage links to all six calculators", async ({ page }) => {
     await page.goto("/");
     for (const route of IMPLEMENTED_CALCULATOR_ROUTES) {
       await expect(page.locator(`a[href='${route}']`).first()).toBeVisible();
     }
   });
 
-  test("no route links to a loans, mortgage or unrelated calculator", async ({ page }) => {
+  test("no route links to a mortgage, auto loan, credit card or lender referral", async ({ page }) => {
     await page.goto("/calculators");
     const bodyText = (await page.locator("body").innerText()).toLowerCase();
-    for (const forbidden of ["loan", "mortgage"]) {
+    for (const forbidden of ["mortgage", "auto loan", "car loan", "credit card", "refinance today"]) {
       expect(bodyText).not.toContain(forbidden);
     }
   });

@@ -11,9 +11,10 @@ export default function Home() {
         {siteConfig.tagline}
       </h1>
       <p className="mb-8 max-w-2xl text-lg text-navy-soft">
-        {siteConfig.name} is a set of straightforward calculators for everyday
-        savings questions. Everything runs in your browser, and nothing you
-        type is sent anywhere, stored, or required for you to log in.
+        {siteConfig.name} is a set of straightforward calculators for
+        everyday savings and loan questions. Everything runs in your
+        browser, and nothing you type is sent anywhere, stored, or
+        required for you to log in.
       </p>
       <div className="mb-10 flex flex-wrap gap-3">
         <Link
@@ -30,7 +31,7 @@ export default function Home() {
         </Link>
       </div>
 
-      <div className="mb-10 grid gap-4 border-t border-border pt-10 sm:grid-cols-2">
+      <div className="mb-10 grid gap-4 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-3">
         <Link
           href="/calculators/compound-interest"
           className="rounded-lg border border-border bg-surface p-4 hover:border-teal"
@@ -58,6 +59,20 @@ export default function Home() {
         >
           <h2 className="mb-1 font-semibold text-navy">Savings comparison</h2>
           <p className="text-sm text-navy-soft">What changes if I save more or use a different rate?</p>
+        </Link>
+        <Link
+          href="/calculators/loan-payment"
+          className="rounded-lg border border-border bg-surface p-4 hover:border-teal"
+        >
+          <h2 className="mb-1 font-semibold text-navy">Loan payment</h2>
+          <p className="text-sm text-navy-soft">Estimate a monthly loan payment and schedule.</p>
+        </Link>
+        <Link
+          href="/calculators/loan-payoff"
+          className="rounded-lg border border-border bg-surface p-4 hover:border-teal"
+        >
+          <h2 className="mb-1 font-semibold text-navy">Loan payoff</h2>
+          <p className="text-sm text-navy-soft">See what extra payments could save you.</p>
         </Link>
       </div>
 

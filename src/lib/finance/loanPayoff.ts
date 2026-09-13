@@ -5,7 +5,7 @@ import type {
   LoanPayoffInput,
   LoanPayoffResult,
   LoanPayoffScenarioResult,
-  LoanPayoffScheduleRow,
+  LoanScheduleRow,
 } from "./types";
 
 const D = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
@@ -61,7 +61,7 @@ function simulatePayoffScenario(
   }
 
   let balance = balanceStart;
-  const schedule: LoanPayoffScheduleRow[] = [];
+  const schedule: LoanScheduleRow[] = [];
   let totalPaid = new D(0);
   let unusedOneTimeExtra = oneTimeExtra;
 

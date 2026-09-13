@@ -198,6 +198,87 @@ test.describe("New Phase 2 calculators: usability at all required widths", () =>
   });
 });
 
+test.describe("Phase 3 loan calculators: usability at all required widths", () => {
+  const routes = [
+    { path: "/calculators/loan-payment", label: "loan payment" },
+    { path: "/calculators/loan-payoff", label: "loan payoff" },
+  ];
+  const widths = [320, 390, 768, 1440];
+
+  for (const route of routes) {
+    for (const width of widths) {
+      test(`${route.label} page has no horizontal overflow at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(route.path);
+        const hasOverflow = await page.evaluate(
+          () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        );
+        expect(hasOverflow).toBe(false);
+      });
+    }
+  }
+
+  test("loan payment result amounts stay readable and on one line at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/loan-payment");
+    await page.getByLabel(/^Loan amount/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Loan term/).fill("12");
+
+    const paymentValue = page
+      .locator("dl > div", { has: page.locator("dt", { hasText: "Estimated monthly payment" }) })
+      .locator("dd");
+    await expect(paymentValue).toContainText("$888.49");
+    const isSingleLine = await paymentValue.evaluate((el) => {
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      return el.clientHeight <= lineHeight * 1.5;
+    });
+    expect(isSingleLine).toBe(true);
+
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+  });
+
+  test("loan payoff comparison stays readable and overflow free at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("6");
+    await page.getByLabel(/^Required monthly payment/).fill("200");
+    await page.getByLabel(/^Extra monthly payment/).fill("50");
+
+    const savedValue = page
+      .locator("dl > div", { has: page.locator("dt", { hasText: "Estimated interest saved" }) })
+      .locator("dd");
+    await expect(savedValue).toBeVisible();
+    const isSingleLine = await savedValue.evaluate((el) => {
+      const lineHeight = parseFloat(getComputedStyle(el).lineHeight);
+      return el.clientHeight <= lineHeight * 1.5;
+    });
+    expect(isSingleLine).toBe(true);
+
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+  });
+
+  test("loan schedule scroll hint appears only when the table doesn't fit, and no page overflow results", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/loan-payment");
+    await page.getByLabel(/^Loan amount/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Loan term/).fill("12");
+    await expect(page.getByText("Scroll to view all columns.")).toBeVisible();
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+  });
+});
+
 test.describe("Results position relative to inputs", () => {
   test("on desktop, results sit beside inputs (side by side)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

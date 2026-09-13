@@ -2,247 +2,214 @@
 
 ## Current phase
 
-**Phase 2: Savings goals, saving time, comparison and input-default policy**
+**Phase 3: Loan payment and loan payoff calculators**
 
 Status: `AWAITING_REVIEW`
 
-Phase 1 (foundation and the compound interest calculator) is approved. See
-"Phase 1 history" below for its review rounds. This phase adds three new
-calculators, retrofits the input default/required-field policy onto the
-approved Phase 1 calculator, and adds print/CSV export to the three new
-tools. No calculation logic from Phase 1 changed in a way that alters its
-results; `src/lib/finance/compoundInterest.ts` was refactored to reuse the
-new shared projection engine internally, but its public function signature,
-behavior and all Phase 1 test fixtures are unchanged (verified: the
-original 38 Phase 1 vitest assertions still pass unmodified).
+Phases 1 and 2 (foundation, compound interest, savings goal/time/comparison,
+and the input default/required-field policy) are approved. See "Earlier
+phases" below for a condensed history. This phase adds two educational
+fixed-payment loan calculators. No calculation logic from Phases 1 or 2
+changed; two shared comparison components were generalized and relocated
+(see "Shared UI components" below) but their savings-comparison behavior is
+unchanged, verified by re-running that suite.
 
 ## Implemented routes
 
 | Route | Purpose |
 | --- | --- |
-| `/` | Homepage — explanation plus links to all four calculators |
-| `/calculators` | Lists all four implemented calculators |
-| `/calculators/compound-interest` | Compound interest calculator (Phase 1, retrofitted) |
+| `/` | Homepage — explanation plus links to all six calculators |
+| `/calculators` | Lists all six implemented calculators |
+| `/calculators/compound-interest` | Compound interest calculator |
 | `/calculators/savings-goal` | How much do I need to save each month? |
 | `/calculators/savings-time` | How long will it take to reach my target? |
 | `/calculators/savings-comparison` | What changes if I save more or use a different rate? |
+| `/calculators/loan-payment` | Estimate a monthly loan payment and amortization schedule |
+| `/calculators/loan-payoff` | Compare a baseline payoff against an extra-payment scenario |
 | `/methodology` | Formulas, rate modes, rounding policy, input limits, scope, privacy |
 
-No other routes exist. No loans, mortgages, ads, analytics, accounts, or
-unrelated calculators were added.
+No other routes exist. No mortgage, auto-loan, credit-card, lender referral,
+ads, analytics, accounts, or unrelated calculators were added.
 
-## Shared financial engine (`src/lib/finance/`)
+## Loan payment model (`src/lib/finance/loanPayment.ts`)
 
-- `projection.ts` — `stepMonth()` (one month's step, end or beginning
-  timing) and `projectBalance()` (runs `stepMonth` for a fixed number of
-  months, building the schedule). This is the single implementation of the
-  per-month formula; every calculator goes through it rather than
-  re-implementing the step.
-- `rate.ts` — `monthlyRateFromNominal()`, `monthlyRateFromAPY()`, and
-  `resolveMonthlyRate()`. APY is converted directly to a monthly rate
-  (`(1 + APY/100)^(1/12) - 1`); it is never compounded again on top of a
-  monthly conversion the way a nominal rate is (`rate/100/12`).
-- `compoundInterest.ts` — Phase 1's public function, now a thin wrapper
-  that resolves a nominal rate and calls `projectBalance`. Same input and
-  output shape as Phase 1.
-- `scenario.ts` — `runScenario()`, a fixed-duration projection that
-  accepts either rate mode. Used by the comparison calculator and to build
-  a solved savings goal's confirmation schedule.
-- `savingsGoal.ts` — `calculateSavingsGoal()`, a closed-form solver (see
-  "Savings goal model" below).
-- `savingsTime.ts` — `calculateSavingsTime()`, a bounded month-by-month
-  simulation (see "Savings time model" below).
-- `savingsComparison.ts` — `compareSavingsScenarios()`, runs two
-  `runScenario()` calls and reports the differences.
-- `csv.ts` (`src/lib/csv.ts`, not finance-specific) — `toCsv()` and
-  `downloadCsv()`, a small local Blob-based CSV export, no server involved.
-
-## Savings goal model
-
-Closed-form inverse of the shared compounding model, not a numerical
-search. Given starting balance `P`, target `T`, monthly rate `i`, duration
-`N` months:
+Closed-form fixed monthly payment, given loan amount `P`, monthly rate `i`
+(annual note rate / 100 / 12), and `n` monthly payments:
 
 ```
-growth = (1 + i) ^ N
-balanceFromStartAlone = P * growth
-annuityFactor (i != 0): ((growth - 1) / i), times (1 + i) if beginning of each month
-annuityFactor (i == 0): N
-requiredMonthlyContribution = (T - balanceFromStartAlone) / annuityFactor
+i > 0: M = P × i / (1 − (1 + i)^−n)
+i = 0: M = P / n
 ```
 
-- `P >= T` → required contribution is $0 ("already met").
-- `balanceFromStartAlone >= T` → required contribution is $0 ("interest alone").
-- `N == 0` and `T > P` → impossible; explained, not computed as a number.
-- Decimal arithmetic at 40 significant digits avoids the floating-point
-  cancellation that the naive `(growth-1)/i` form is prone to near `i = 0`
-  in ordinary doubles; an exact `i.isZero()` covers that case directly.
-- The confirmation schedule (final balance, contributions, interest) is
-  built by running the solved contribution back through `projectBalance`,
-  the same engine every other calculator uses — never a second, separate
-  computation.
+`M` is computed at high internal (40 significant digit) precision, then
+rounded once to the nearest cent (`ROUND_HALF_UP`) to become the actual
+scheduled payment. The amortization schedule then applies, for each month:
+interest first (on the current balance), then the rounded scheduled
+payment, with the remainder reducing principal. The final row is capped at
+the exact remaining balance owed, so the schedule always reaches exactly
+`$0.00` and never goes negative — this can make the last row's payment
+differ slightly from the flat scheduled payment shown for every other row,
+which is expected and documented on the page. Monthly payment frequency
+only; no other frequency is offered or implied.
 
-## Savings time model
+Independently derived fixtures (via a separate plain-JS script, not the
+implementation): $10,000 at 12% over 12 months gives a theoretical payment
+of $888.4878867834170733998783122788652898046, rounding to $888.49; $1,200
+at 0% over 12 months gives exactly $100.00 for all 12 rows.
 
-A bounded, one-month-at-a-time simulation using `stepMonth`, not a
-closed-form solve (there is no clean inverse for "first month a threshold
-is crossed" the way there is for "amount needed after N fixed months").
-Target checking happens once per month, immediately after that month's
-growth and contribution have both been applied in the chosen order — never
-mid-step. Runs up to `SAVINGS_TIME_LIMITS.maxMonths` (1,200 months, 100
-years); if the target isn't reached by then, the result says so rather
-than inventing an end date. `startingBalance >= target` short-circuits to
-"already reached, 0 months" without simulating. A zero contribution and a
-non-positive rate short-circuits to "not reached" without simulating,
-since the balance provably cannot move.
+## Loan payoff model (`src/lib/finance/loanPayoff.ts`)
 
-## Savings comparison model
+A bounded month-by-month simulation (no closed form exists for "first month
+a threshold is crossed" the way there is for a fixed-payment solve). Two
+scenarios are always run and compared: a **baseline** (required payment
+only, no extras) and the visitor's **extra-payment scenario** (required
+payment, an optional recurring monthly extra, and an optional one-time
+extra applied only in one selected month).
 
-Runs a baseline and an alternative `ScenarioInput` through `runScenario()`
-independently and reports the numeric differences (final balance, total
-contributions, total interest). Never claims one scenario is "better."
+Each simulated month, in order: interest accrues on the current balance
+first; then the required payment is applied; then the recurring extra
+payment; then, in the selected month only, the one-time extra payment.
+Every payment is capped at the amount actually owed that month — a
+requested extra beyond what was owed is reported separately as an unused
+amount and is never counted as paid. "Month 1" is defined as the first
+modeled payment month.
 
-## Input default and required-field policy
+**Non-amortizing detection**: before simulating, the required payment plus
+recurring extra is compared against the first month's interest. If it does
+not exceed that interest, the balance cannot decrease (a fixed rate and a
+covered — or larger — payment guarantees strictly decreasing interest and
+therefore continued amortization once the first month is covered, so a
+single up-front check is sufficient; no per-month check is needed). In that
+case no payoff date is invented: the result states plainly that the balance
+does not decrease under this payment, and shows only the minimum payment
+that would cover the first month's interest, labeled explicitly as an
+educational reference point, not a lender requirement. No comparison or
+interest-saved figure is shown for a non-amortizing scenario.
 
-Applied to every field on every Phase 2 calculator, and retrofitted onto
-Phase 1's compound interest calculator:
+**Maximum horizon**: simulation runs up to `LOAN_PAYOFF_LIMITS.maxMonths`
+(1,200 months, 100 years). If a valid, amortizing loan does not pay off
+within that horizon, the result says so rather than inventing a payoff
+date.
 
-- **Defaulted zero**: the field visibly shows `0` (or is pre-filled) and
-  is usable immediately. Used only where zero naturally means "none"
-  (starting/initial balance, monthly contribution, and — compound interest
-  only — duration). Clearing the field restores `0` on blur
-  (`restoreZeroOnBlur` in each calculator component); a field is never
-  silently treated as zero while it is transiently blank.
-- **Required**: the field starts empty; its visible label text includes
-  "(Required)" (not just a placeholder), and `aria-required="true"` is set
-  for assistive technology. Used for target balance, duration (on the
-  three new calculators), and every rate field. A rate never defaults to
-  0% — the visitor must explicitly type it, including typing `0`.
-- **Explicit choice**: rate type and contribution timing are always a
-  visibly selected radio option, defaulting to nominal rate / end of each
-  month respectively, with no ambiguous unselected state.
+`monthsSaved` and `interestSaved` are computed only when both the baseline
+and extra-payment scenarios amortize within the horizon; otherwise they are
+`null` and the UI shows "Not applicable" rather than a number.
 
-A required field's inline error message (e.g. "Enter an annual rate or
-APY.") appears only once the visitor has interacted with that field (on
-blur) or with the form generally (`origin !== "default"` in the
-`useExampleOrigin` state machine — see below) — never on first paint.
-Implemented via `useTouchedFields` (`src/hooks/useTouchedFields.ts`).
+Independently derived fixtures (via a separate script, not the
+implementation): $10,000 at 6% with a $200 required monthly payment pays
+off the baseline in 58 months (4 years, 10 months) with $1,536.14 total
+interest; adding a $50 recurring extra pays off in 45 months (3 years, 9
+months) with $1,185.17 interest, saving 13 months and $350.97; a $1,000
+one-time extra in month 6 pays off in 52 months; an oversized $50,000
+one-time extra in month 1 is capped, paying off in 1 month with $40,150.00
+reported as unused; a $10,000 balance at 12% with a $50 required payment
+(below the $100 first-month interest) is non-amortizing; a $1,000,000
+balance at 1% with an $840 required payment (against ~$833.33 first-month
+interest) does not pay off within the 1,200-month maximum.
 
-The example-mode state machine from Phase 1 (`empty/default -> example ->
-user`, with per-field "still shows an example value" residue tracking) was
-extracted into a shared hook, `useExampleOrigin`
-(`src/hooks/useExampleOrigin.ts`), and reused by all four calculators. A
-defaulted-zero value is never itself labeled as an illustrative example —
-only fields actually filled in by "Try an example" get that label.
+## Cent rounding policy (both loan calculators)
 
-## Shared UI components (`src/components/shared/`)
+Balance, interest, and principal are kept at high internal precision (40
+significant digits) throughout every calculation. Only two things are ever
+rounded to the nearest cent: the scheduled monthly payment itself (once,
+up front, via `ROUND_HALF_UP`) and every value actually displayed or
+exported. Because each displayed figure is rounded independently, two
+displayed figures can differ from their unrounded sum by up to $0.01 — the
+same site-wide display-rounding note used by every calculator. Real lender
+schedules may differ further due to rounding conventions, payment date,
+fees, escrow, penalties, and changing rates; both calculator pages state
+this explicitly.
 
-`NumberField` (required/example/blur-aware text input), `FieldHelp` ("Not
-sure what to enter?" affordance), `RateField` (rate-mode radio group plus
-the rate amount field, bundled since every calculator with a rate needs
-both), `RadioGroup`, `StatCard` (responsive type sizing so extreme values
-never force page overflow), `GrowthChart`, `MonthlyScheduleTable`,
-`ScrollableRegion` (the accessible horizontal-scroll pattern: focusable,
-labelled, and only shows "Scroll to view all columns." once content
-actually overflows, detected via `ResizeObserver`), `PrintButton`,
-`CsvDownloadButton`, and `PrintDetailsExpander` (see "Print view" below).
-Promoted from Phase 1's compound-interest-only components; Phase 1's
-calculator now imports these same shared components rather than its own
-copies.
+## Note rate versus APR
 
-## Print view
+Both loan calculators use the annual note interest rate the visitor enters,
+which is explicitly documented as not necessarily the same as an APR (an
+APR can include certain fees on top of the note rate). Neither calculator
+calculates or claims an all-in APR, implies loan approval, quotes a lender,
+recommends a provider, or advises whether refinancing is suitable.
 
-Every closed `<details>` (assumptions summaries) needs to be visible in a
-printed page even if the visitor never clicked it open on screen. Chromium
-hides closed-`<details>` content in a way that plain CSS (`display`, even
-`content-visibility` overrides) does not reliably unhide — this was
-discovered and fixed during Phase 2 verification (see the completion
-report). The actual fix, `PrintDetailsExpander`
-(`src/components/shared/PrintDetailsExpander.tsx`, mounted once in the
-root layout), listens for the standard `beforeprint`/`afterprint` events
-(fired by both the in-page "Print this result" button and a visitor's own
-browser print command) and opens every `<details>` immediately before
-printing, restoring whichever ones were closed immediately after. Print
-CSS (`globals.css`) separately hides `.no-print`-marked chrome (site
-header/footer, the print/CSV/example buttons themselves).
+## Input default and required-field policy (loan calculators)
 
-## CSV export
+Follows the same site-wide policy from Phase 2:
 
-Each of the three new calculators has a "Download CSV" button
-(`CsvDownloadButton` + `toCsv`/`downloadCsv` from `src/lib/csv.ts`). The
-file is assembled as a string and handed to the browser as a local
-Blob/object URL — no server round trip, no financial values ever placed in
-the page URL. Every export includes the calculator name, a
-`Generated,<date/time>` row (captured at click time), every entered
-assumption (rate type, rate, timing, duration/target as applicable), the
-"Excludes taxes, fees, inflation and variable rates" note, and the full
-monthly (or comparison) schedule. Figures in the CSV use the same
-display-rounded values shown on screen, so the export reconciles with the
-displayed result exactly (verified by e2e test).
+- **Loan payment**: loan amount (required, > 0), annual note rate
+  (required, blank by default, explicit 0% valid), loan term (required,
+  > 0 whole months, entry supports months or years-plus-months).
+- **Loan payoff**: current balance (required, > 0), annual note rate
+  (required), required monthly payment (required, > 0), recurring extra
+  monthly payment (defaults to visible `0`, meaning none), one-time extra
+  payment (defaults to visible `0`), month for the one-time extra (defaults
+  to visibly selected "1", the first modeled payment month; applies only if
+  the one-time extra is greater than $0).
+
+A blank required field is never treated as zero. A defaulted-zero field is
+restored to `0` on blur if cleared. Error messages appear only after the
+field is touched or the form is otherwise interacted with, consistent with
+`useTouchedFields` / `useExampleOrigin` (see Phase 2 history).
 
 ## Input limits (`src/lib/finance/limits.ts`)
 
-- Compound interest (unchanged from Phase 1): initial balance 0 to
-  10,000,000; monthly contribution 0 to 1,000,000; nominal rate 0% to
-  100%; duration 0 to 600 months.
-- Savings goal / savings comparison: starting balance 0 to 10,000,000;
-  monthly contribution 0 to 1,000,000; rate (nominal or APY) 0% to 100%;
-  duration 0 to 600 months; target balance must be greater than 0, up to
-  100,000,000.
-- Savings time: same starting balance/contribution/rate bounds; target
-  balance greater than 0, up to 100,000,000; documented maximum horizon of
-  1,200 months (100 years).
+- Loan payment: loan amount 0 to 10,000,000; rate 0% to 100%; term 0 to
+  600 months.
+- Loan payoff: current balance 0 to 10,000,000; rate 0% to 100%; required
+  monthly payment 0 to 1,000,000; extra monthly payment 0 to 1,000,000;
+  one-time extra payment 0 to 10,000,000; documented maximum simulation
+  horizon of 1,200 months (100 years).
 
-## Impossible/edge-case behavior
+## New files this phase
 
-- Savings goal, zero duration with target above starting balance:
-  explained as impossible (no monthly period available), not computed as
-  a misleading number.
-- Savings time, target unreachable under the entered assumptions (no
-  contribution, no positive rate): explained immediately as "not reached,"
-  without a 1,200-month simulation.
-- Savings time, target not reached within the 1,200-month maximum: reported
-  as such; no invented end date.
-- All three new calculators reject negative inputs and a non-positive
-  target balance, and never return `Infinity`, `NaN`, or a negative
-  required contribution (verified by both unit and e2e tests, including at
-  the documented upper limits).
+- `src/lib/finance/loanPayment.ts`, `loanPayoff.ts` — calculation engines.
+- `src/lib/finance/types.ts`, `limits.ts`, `validation.ts` — extended with
+  loan input/result types, loan limits, and two new validators
+  (`validatePositiveAmountField`, `validatePositiveMonthsField`).
+- `src/lib/finance/__tests__/loanPayment.test.ts`,
+  `loanPayoff.test.ts` — independently-derived-fixture unit tests.
+- `src/components/loan-payment/LoanPaymentCalculator.tsx`,
+  `src/components/loan-payoff/LoanPayoffCalculator.tsx` — orchestrator
+  components.
+- `src/components/shared/LoanScheduleTable.tsx`,
+  `LoanBalanceChart.tsx` — loan-specific accessible schedule table and
+  balance chart.
+- `src/components/shared/ComparisonChart.tsx`,
+  `ComparisonTable.tsx` — generalized and relocated from
+  `src/components/savings-comparison/` (minimal structural props) so the
+  loan payoff comparison can reuse them; `SavingsComparisonCalculator.tsx`
+  updated to import from the new location.
+- `src/app/calculators/loan-payment/page.tsx`,
+  `src/app/calculators/loan-payoff/page.tsx` — static explanatory pages.
+- `src/app/calculators/page.tsx`, `src/app/page.tsx`,
+  `src/app/methodology/page.tsx` — updated to link to and document the two
+  new calculators.
+- `e2e/loan-payment.spec.ts`, `e2e/loan-payoff.spec.ts` — new browser test
+  suites; `e2e/navigation.spec.ts`, `responsive.spec.ts`, `wording.spec.ts`,
+  `exports.spec.ts`, `accessibility.spec.ts` updated to cover the two new
+  routes.
 
-## Phase 1 history
+## Earlier phases
 
-### Review round 1 — fix applied
-
-The example-mode label used an em dash ("Illustrative example — edit
-these assumptions.") instead of the required "Illustrative example. Edit
-these assumptions." Fixed, and a full public-wording review for em/en
-dashes was completed; the rule is recorded in `CLAUDE.md`.
-
-### Review round 2 — fix applied
-
-The round 1 preserve-list incorrectly exempted "end-of-month",
-"beginning-of-month", "month-by-month", "round-half-up" and
-"arbitrary-precision" from the public wording rule; all five were replaced
-with natural alternatives. Normal-magnitude currency results (e.g.
-$18,207.33) were wrapping across lines inside their stat card at some
-widths; fixed with a responsive stat grid and the `StatCard` component's
-responsive type sizing (see "Shared UI components" above, since promoted).
-
-### Review round 3 — fix applied
-
-Timing radio labels, the assumptions summary, and related prose now read
-"End of each month" / "Beginning of each month" everywhere. The monthly
-schedule table gained the accessible horizontal-scroll pattern (see
-"Shared UI components" above).
+Phase 1 (compound interest calculator, foundation) and Phase 2 (savings
+goal/time/comparison calculators, the shared financial engine, and the
+input default/required-field policy) are approved and unchanged this
+phase. Their models, review-round history, and defects-found-and-fixed are
+recorded in prior completion reports and in `CLAUDE.md`'s public wording
+rules (em/en dash prohibition, specific hyphenated-term replacements,
+timing wording). Summary: `stepMonth`/`projectBalance` (`projection.ts`)
+is the single shared per-month formula every calculator (including the
+loan calculators) is built on; `useExampleOrigin` and `useTouchedFields`
+are the shared example-mode and validation-timing hooks; `PrintDetailsExpander`
+forces closed `<details>` assumptions panels open for printing.
 
 ## Known limitations (by design, in scope for a later phase)
 
-- No taxes, fees, inflation, or variable-rate modeling on any calculator.
-- No compounding frequency other than monthly.
-- No loans, mortgages, or other unrelated calculators.
+- No taxes, fees, inflation, insurance, escrow, penalties, or variable-rate
+  modeling on any calculator.
+- No compounding frequency other than monthly; loan payments are monthly
+  only.
+- No mortgage-specific, auto-loan, or credit-card calculators; no APR
+  calculation; no lender integration of any kind.
 - Not deployed. No domain assumed (`NEXT_PUBLIC_SITE_URL` unset locally).
 
 ## Known defects
 
 None known at the time of this report. See the completion report for full
-verification detail, including a defect found and fixed during this
-phase's own verification (the print-view `<details>` issue above).
+verification detail.

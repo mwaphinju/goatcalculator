@@ -13,8 +13,8 @@ import { PrintButton } from "@/components/shared/PrintButton";
 import { CsvDownloadButton } from "@/components/shared/CsvDownloadButton";
 import { toCsv } from "@/lib/csv";
 import { ScenarioFields, type ScenarioFieldKey } from "./ScenarioFields";
-import { ComparisonChart } from "./ComparisonChart";
-import { ComparisonTable } from "./ComparisonTable";
+import { ComparisonChart } from "@/components/shared/ComparisonChart";
+import { ComparisonTable } from "@/components/shared/ComparisonTable";
 
 const FIELD_KEYS: readonly ScenarioFieldKey[] = ["startingBalance", "contribution", "rate", "duration"];
 

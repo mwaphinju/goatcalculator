@@ -2,13 +2,20 @@
 
 import { useId } from "react";
 import { formatMoney } from "@/lib/finance/format";
-import type { ScheduleRow } from "@/lib/finance/types";
+
+/** The minimal shape any schedule row needs for this chart: a month number and the balance at the end of it. */
+interface BalancePoint {
+  month: number;
+  endingBalance: string;
+}
 
 interface ComparisonChartProps {
-  baselineSchedule: ScheduleRow[];
+  baselineSchedule: BalancePoint[];
   baselineStartingBalance: string;
-  alternativeSchedule: ScheduleRow[];
+  alternativeSchedule: BalancePoint[];
   alternativeStartingBalance: string;
+  baselineLabel?: string;
+  alternativeLabel?: string;
 }
 
 const WIDTH = 640;
@@ -25,7 +32,7 @@ function samplePoints<T>(items: T[], maxPoints: number): T[] {
   return sampled;
 }
 
-function toSeries(schedule: ScheduleRow[], startingBalance: string, maxMonth: number) {
+function toSeries(schedule: BalancePoint[], startingBalance: string, maxMonth: number) {
   const points = samplePoints(schedule, 60);
   const series: { month: number; value: number }[] = [{ month: 0, value: Number(startingBalance) }];
   for (const row of points) {
@@ -37,12 +44,19 @@ function toSeries(schedule: ScheduleRow[], startingBalance: string, maxMonth: nu
   return series;
 }
 
-/** Accessible two-line chart comparing a baseline and an alternative savings scenario over time. */
+/**
+ * Accessible two-line chart comparing a baseline and an alternative
+ * scenario's balance over time. Used by both the savings comparison
+ * calculator (growing balances) and the loan payoff calculator (declining
+ * balances) — it only needs each schedule row's month and ending balance.
+ */
 export function ComparisonChart({
   baselineSchedule,
   baselineStartingBalance,
   alternativeSchedule,
   alternativeStartingBalance,
+  baselineLabel = "Baseline",
+  alternativeLabel = "Alternative",
 }: ComparisonChartProps) {
   const chartDescriptionId = useId();
 
@@ -98,17 +112,18 @@ export function ComparisonChart({
       </svg>
 
       <figcaption id={chartDescriptionId} className="mt-2 text-sm text-navy-soft">
-        Balance over {maxMonth} {maxMonth === 1 ? "month" : "months"}: the dashed line is the
-        baseline scenario, ending at {formatMoney(String(finalBaseline))}. The solid teal line is
-        the alternative scenario, ending at {formatMoney(String(finalAlternative))}. Exact figures
-        for every month are in the table below.
+        Balance over {maxMonth} {maxMonth === 1 ? "month" : "months"}: the dashed line is the{" "}
+        {baselineLabel.toLowerCase()} scenario, ending at {formatMoney(String(finalBaseline))}. The
+        solid teal line is the {alternativeLabel.toLowerCase()} scenario, ending at{" "}
+        {formatMoney(String(finalAlternative))}. Exact figures for every month are in the table
+        below.
       </figcaption>
       <div className="mt-2 flex flex-wrap gap-4 text-xs text-navy-soft">
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-navy-soft" aria-hidden /> Baseline
+          <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-navy-soft" aria-hidden /> {baselineLabel}
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 bg-teal-dark" aria-hidden /> Alternative
+          <span className="inline-block h-0.5 w-4 bg-teal-dark" aria-hidden /> {alternativeLabel}
         </span>
       </div>
     </figure>

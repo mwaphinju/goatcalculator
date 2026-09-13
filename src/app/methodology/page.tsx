@@ -260,6 +260,85 @@ export default function MethodologyPage() {
           </p>
         </section>
 
+        <section aria-labelledby="lp-heading">
+          <h2 id="lp-heading" className="mb-3 text-xl font-semibold text-navy">
+            Loan payment calculator
+          </h2>
+          <p className="mb-3">
+            Estimates the fixed monthly principal and interest payment on a
+            loan, given monthly rate <code>i</code> greater than zero:
+          </p>
+          <div className="mb-3 space-y-1 rounded-md border border-border bg-surface p-4 font-mono text-sm text-navy">
+            <p>M = P &times; i / (1 &minus; (1 + i)^&minus;n)</p>
+            <p>For zero interest: M = P / n</p>
+          </div>
+          <p className="mb-2">
+            <code>P</code> is the loan amount, <code>n</code> is the number
+            of monthly payments, and <code>M</code> is the theoretical
+            payment before cent rounding.
+          </p>
+          <p>
+            Cent rounding policy: balance, interest and principal are kept
+            at high internal precision throughout. For each schedule row,
+            interest is calculated first on the current balance, then the
+            scheduled payment (M rounded to the nearest cent) is applied,
+            then the remainder goes to principal. The final payment is
+            capped at the exact remaining amount owed, so the schedule
+            always reaches exactly $0.00 and never goes negative. Lender
+            conventions and payment rounding can differ slightly from this
+            illustrative schedule. This calculator only supports monthly
+            payment frequency.
+          </p>
+        </section>
+
+        <section aria-labelledby="lpo-heading">
+          <h2 id="lpo-heading" className="mb-3 text-xl font-semibold text-navy">
+            Loan payoff calculator
+          </h2>
+          <p className="mb-2">
+            Each month, interest is calculated first on the remaining
+            balance, then the required payment is applied, then any
+            recurring extra payment is applied to principal, then (in the
+            selected month only) the one time extra payment is applied.
+            Every payment is capped at the amount actually owed; any
+            requested extra beyond what was owed is reported as unused and
+            is never counted as paid. Month 1 is the first modeled payment
+            month. A baseline scenario (the required payment alone, no
+            extras) is compared against your extra payment scenario, both
+            simulated the same way, up to a documented maximum of 1,200
+            months.
+          </p>
+          <p>
+            If the required and extra monthly payments together do not
+            exceed the first month&apos;s interest, the balance cannot
+            decrease under a fixed rate and payment, so this calculator
+            states this clearly instead of inventing a payoff date, and
+            shows only the payment that would cover that first
+            month&apos;s interest as an educational reference point, not a
+            lender requirement. Interest saved and a payoff comparison are
+            only shown when both scenarios amortize within the supported
+            horizon.
+          </p>
+        </section>
+
+        <section aria-labelledby="apr-heading">
+          <h2 id="apr-heading" className="mb-3 text-xl font-semibold text-navy">
+            Note rate versus APR
+          </h2>
+          <p>
+            Both loan calculators use the annual note interest rate you
+            enter, which is not necessarily the same as an APR. An APR can
+            include certain fees on top of the note rate; these
+            calculators exclude fees entirely and do not calculate or
+            claim an all-in APR. Neither loan calculator implies loan
+            approval, quotes a lender, recommends a provider, or advises
+            whether refinancing is suitable for you. They do not include
+            taxes, insurance, escrow, fees, penalties, or changing rates.
+            Real lender schedules may differ due to rounding, payment
+            date, fees, escrow, penalties, and changing rates.
+          </p>
+        </section>
+
         <section aria-labelledby="disclaimer-heading">
           <h2 id="disclaimer-heading" className="mb-3 text-xl font-semibold text-navy">
             General disclaimer

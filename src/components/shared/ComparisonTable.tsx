@@ -1,18 +1,39 @@
 import Decimal from "decimal.js";
 import { formatMoney } from "@/lib/finance/format";
-import type { ScheduleRow } from "@/lib/finance/types";
-import { ScrollableRegion } from "@/components/shared/ScrollableRegion";
+import { ScrollableRegion } from "./ScrollableRegion";
 
-interface ComparisonTableProps {
-  baselineSchedule: ScheduleRow[];
-  alternativeSchedule: ScheduleRow[];
+interface BalancePoint {
+  month: number;
+  endingBalance: string;
 }
 
-/** The accessible table alternative to the comparison chart: baseline vs. alternative ending balance, month by month. */
-export function ComparisonTable({ baselineSchedule, alternativeSchedule }: ComparisonTableProps) {
+interface ComparisonTableProps {
+  baselineSchedule: BalancePoint[];
+  alternativeSchedule: BalancePoint[];
+  baselineLabel?: string;
+  alternativeLabel?: string;
+  emptyMessage?: string;
+  captionPrefix?: string;
+  regionLabel?: string;
+}
+
+/**
+ * The accessible table alternative to `ComparisonChart`: baseline vs.
+ * alternative ending balance, month by month. Shared by the savings
+ * comparison and loan payoff calculators.
+ */
+export function ComparisonTable({
+  baselineSchedule,
+  alternativeSchedule,
+  baselineLabel = "Baseline",
+  alternativeLabel = "Alternative",
+  emptyMessage = "No monthly schedule to show.",
+  captionPrefix = "Monthly comparison schedule",
+  regionLabel = "Comparison schedule table, scrollable horizontally on narrow screens",
+}: ComparisonTableProps) {
   const maxMonth = Math.max(baselineSchedule.length, alternativeSchedule.length);
   if (maxMonth === 0) {
-    return <p className="text-sm text-navy-soft">No monthly schedule to show for a duration of 0 months.</p>;
+    return <p className="text-sm text-navy-soft">{emptyMessage}</p>;
   }
 
   const byMonth = new Map<number, { baseline?: string; alternative?: string }>();
@@ -37,11 +58,12 @@ export function ComparisonTable({ baselineSchedule, alternativeSchedule }: Compa
   });
 
   return (
-    <ScrollableRegion ariaLabel="Comparison schedule table, scrollable horizontally on narrow screens">
+    <ScrollableRegion ariaLabel={regionLabel}>
       <table className="w-full min-w-[560px] border-collapse text-sm">
         <caption className="sr-only">
-          Monthly comparison schedule: baseline balance, alternative balance and the difference
-          between them for each of {rows.length} {rows.length === 1 ? "month" : "months"}.
+          {captionPrefix}: {baselineLabel.toLowerCase()} balance, {alternativeLabel.toLowerCase()}{" "}
+          balance and the difference between them for each of {rows.length}{" "}
+          {rows.length === 1 ? "month" : "months"}.
         </caption>
         <thead className="sticky top-0 bg-teal-soft text-navy">
           <tr>
@@ -49,10 +71,10 @@ export function ComparisonTable({ baselineSchedule, alternativeSchedule }: Compa
               Month
             </th>
             <th scope="col" className="px-3 py-2 text-right font-medium">
-              Baseline balance
+              {baselineLabel} balance
             </th>
             <th scope="col" className="px-3 py-2 text-right font-medium">
-              Alternative balance
+              {alternativeLabel} balance
             </th>
             <th scope="col" className="px-3 py-2 text-right font-medium">
               Difference

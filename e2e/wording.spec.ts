@@ -7,6 +7,8 @@ const ALL_PUBLIC_ROUTES = [
   "/calculators/savings-goal",
   "/calculators/savings-time",
   "/calculators/savings-comparison",
+  "/calculators/loan-payment",
+  "/calculators/loan-payoff",
   "/methodology",
 ];
 
@@ -16,6 +18,8 @@ const FORBIDDEN_HYPHENATED_TERMS = [
   "month-by-month",
   "round-half-up",
   "arbitrary-precision",
+  "one-time",
+  "fixed-rate",
 ];
 
 // Specific enough to catch an actual promotional claim without matching the
@@ -33,6 +37,11 @@ const FORBIDDEN_CLAIMS = [
   "5-star",
   "trusted by",
   "as seen on",
+  "pre-approved",
+  "preapproved",
+  "guaranteed approval",
+  "refinance today",
+  "apply now",
 ];
 
 for (const route of ALL_PUBLIC_ROUTES) {
@@ -74,6 +83,8 @@ test.describe("Example mode label wording across every calculator that offers on
     "/calculators/savings-goal",
     "/calculators/savings-time",
     "/calculators/savings-comparison",
+    "/calculators/loan-payment",
+    "/calculators/loan-payoff",
   ];
 
   for (const route of calculatorsWithExample) {
@@ -95,13 +106,38 @@ test.describe("Example mode label wording across every calculator that offers on
   }
 });
 
-test.describe("No loan, mortgage or unrelated calculators anywhere", () => {
+test.describe("No mortgage, auto loan, credit card, lender approval or refinancing advice anywhere", () => {
   for (const route of ALL_PUBLIC_ROUTES) {
-    test(`${route} does not mention loans or mortgages`, async ({ page }) => {
+    test(`${route} does not mention out-of-scope loan products or lender approval`, async ({ page }) => {
       await page.goto(route);
       const bodyText = (await page.locator("body").innerText()).toLowerCase();
-      expect(bodyText).not.toContain("loan");
-      expect(bodyText).not.toContain("mortgage");
+      for (const forbidden of [
+        "mortgage",
+        "auto loan",
+        "car loan",
+        "credit card",
+        "pre-approved",
+        "preapproved",
+        "guaranteed approval",
+        "provider recommendation",
+      ]) {
+        expect(bodyText).not.toContain(forbidden);
+      }
+    });
+  }
+
+  for (const route of ["/calculators/loan-payment", "/calculators/loan-payoff"]) {
+    test(`${route} does not claim or calculate an all-in APR`, async ({ page }) => {
+      await page.goto(route);
+      const bodyText = (await page.locator("body").innerText()).toLowerCase();
+      expect(bodyText).not.toMatch(/\bapr of \d/);
+      expect(bodyText).not.toMatch(/\byour apr is\b/);
+    });
+
+    test(`${route} does not recommend refinancing or claim it is suitable`, async ({ page }) => {
+      await page.goto(route);
+      const bodyText = (await page.locator("body").innerText()).toLowerCase();
+      expect(bodyText).not.toMatch(/refinanc\w* is (a good|suitable|recommended)/);
     });
   }
 });

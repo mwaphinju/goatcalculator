@@ -76,6 +76,9 @@ naturally:
   rounded to the nearest cent. Exact halfway values are rounded up.")
 - "arbitrary-precision" → "high precision", with the actual significant-digit
   setting stated where useful
+- "fixed-rate" → "a loan with a fixed interest rate" / "at a fixed interest
+  rate", adapting the sentence around it
+- "one-time" → "one time" (no hyphen)
 
 Beyond this specific list, use judgment for other genuinely awkward
 rewrites rather than a blanket find-and-replace — but do not reintroduce

@@ -97,4 +97,61 @@ test.describe("Keyboard accessibility", () => {
       await expect(page.locator(`#${describedBy}`)).toContainText("Enter an annual rate.");
     }
   });
+
+  test("loan payment: a required field's state is exposed to assistive technology", async ({ page }) => {
+    await page.goto("/calculators/loan-payment");
+    const rateField = page.getByLabel(/^Annual note interest rate/);
+    await expect(rateField).toHaveAttribute("aria-required", "true");
+
+    await rateField.focus();
+    await rateField.blur();
+    await expect(rateField).toHaveAttribute("aria-invalid", "true");
+    const describedBy = await rateField.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+  });
+
+  test("loan payment: the monthly amortization schedule's scroll container is keyboard-focusable and scrollable", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/calculators/loan-payment");
+    await page.getByLabel(/^Loan amount/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("12");
+    await page.getByLabel(/^Loan term/).fill("12");
+
+    const scrollRegion = page.getByRole("region", {
+      name: "Monthly amortization schedule table, scrollable horizontally on narrow screens",
+    });
+    await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+    await scrollRegion.focus();
+    await expect(scrollRegion).toBeFocused();
+
+    const before = await scrollRegion.evaluate((el) => el.scrollLeft);
+    for (let i = 0; i < 15; i++) {
+      await page.keyboard.press("ArrowRight");
+    }
+    const after = await scrollRegion.evaluate((el) => el.scrollLeft);
+    expect(after).toBeGreaterThan(before);
+  });
+
+  test("loan payoff: the comparison table's scroll container is keyboard-focusable and scrollable", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/calculators/loan-payoff");
+    await page.getByLabel(/^Current loan balance/).fill("10000");
+    await page.getByLabel(/^Annual note interest rate/).fill("6");
+    await page.getByLabel(/^Required monthly payment/).fill("200");
+    await page.getByLabel(/^Extra monthly payment/).fill("50");
+
+    const scrollRegion = page.getByRole("region", {
+      name: "Monthly loan payoff comparison table, scrollable horizontally on narrow screens",
+    });
+    await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+    await scrollRegion.focus();
+    await expect(scrollRegion).toBeFocused();
+
+    const before = await scrollRegion.evaluate((el) => el.scrollLeft);
+    for (let i = 0; i < 15; i++) {
+      await page.keyboard.press("ArrowRight");
+    }
+    const after = await scrollRegion.evaluate((el) => el.scrollLeft);
+    expect(after).toBeGreaterThan(before);
+  });
 });
