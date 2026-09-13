@@ -7,9 +7,10 @@ interface FieldHelpProps {
 }
 
 /**
- * "I don't know" help affordance for the rate and contribution fields.
- * Explains what the value means and offers two explicit paths: keep typing
- * your own number, or load a clearly-labeled illustrative example.
+ * "I don't know" help affordance for a field that needs a visitor
+ * assumption. Explains what the value means and offers two explicit
+ * paths: keep typing your own number, or load a clearly labeled
+ * illustrative example.
  */
 export function FieldHelp({ label, explanation, onTryExample }: FieldHelpProps) {
   return (

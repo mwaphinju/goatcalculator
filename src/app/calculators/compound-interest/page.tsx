@@ -4,7 +4,7 @@ import { CompoundInterestCalculator } from "@/components/compound-interest/Compo
 export const metadata: Metadata = {
   title: "Compound Interest Calculator",
   description:
-    "Project a savings balance with monthly compounding, optional monthly contributions, and a full month-by-month schedule.",
+    "Project a savings balance with monthly compounding, optional monthly contributions, and a full monthly schedule.",
 };
 
 export default function CompoundInterestPage() {
@@ -16,7 +16,7 @@ export default function CompoundInterestPage() {
       <p className="mb-8 max-w-2xl text-navy-soft">
         Estimate how a savings balance grows with monthly compounding and
         optional monthly contributions. This calculator only supports
-        monthly compounding — that is the one model described below, not a
+        monthly compounding. That is the one model described below, not a
         default among several.
       </p>
 
@@ -38,12 +38,12 @@ export default function CompoundInterestPage() {
             nominal annual rate (as a decimal) divided by 12:
           </p>
           <div className="mb-3 space-y-2 rounded-md border border-border bg-surface p-4 font-mono text-sm text-navy">
-            <p>End-of-month contributions: B_next = B × (1 + i) + C</p>
-            <p>Beginning-of-month contributions: B_next = (B + C) × (1 + i)</p>
+            <p>Contribution added at the end of each month: B_next = B × (1 + i) + C</p>
+            <p>Contribution added at the beginning of each month: B_next = (B + C) × (1 + i)</p>
           </div>
           <p>
             This step repeats once for every month in the duration you enter.
-            Only monthly compounding is supported in this version — there is
+            Only monthly compounding is supported in this version. There is
             no control for annual, daily or continuous compounding, and the
             calculator does not guess which one you meant.
           </p>
@@ -54,15 +54,16 @@ export default function CompoundInterestPage() {
             Timing assumptions
           </h2>
           <p>
-            &ldquo;End of month&rdquo; means that month&apos;s interest is
+            &ldquo;End of each month&rdquo; means that month&apos;s interest is
             calculated on the balance you already had, and the contribution
-            is added afterward — so a contribution made in the final month
+            is added afterward, so a contribution made in the final month
             does not itself earn any interest in this projection.
-            &ldquo;Beginning of month&rdquo; means the contribution is added
+            &ldquo;Beginning of each month&rdquo; means the contribution is added
             first, so it earns that month&apos;s interest along with the rest
-            of the balance. Beginning-of-month contributions therefore always
-            produce a final balance at least as large as the same scenario
-            with end-of-month contributions.
+            of the balance. Adding contributions at the beginning of each
+            month therefore always produces a final balance at least as
+            large as the same scenario with contributions added at the end
+            of each month.
           </p>
         </section>
 
@@ -109,12 +110,13 @@ export default function CompoundInterestPage() {
           <p>
             After all 12 months, this scenario reaches a final balance of
             approximately <strong className="text-navy">$2,395.08</strong> (exactly{" "}
-            $2,395.075331451667 before rounding to the cent) — made up of the
+            $2,395.075331451667 before rounding to the cent), made up of the
             original $1,000, $1,200 in contributions, and about $195.08 in
             interest. You can reproduce this exact scenario in the calculator
             above using the &ldquo;Try an example&rdquo; link under the
-            interest rate field, then setting the contribution to $100/month
-            end-of-month and the duration to 12 months.
+            interest rate field, then setting the contribution to $100 per
+            month, added at the end of each month, and the duration to 12
+            months.
           </p>
         </section>
 
@@ -129,7 +131,7 @@ export default function CompoundInterestPage() {
             exactly the same for the entire duration, which real accounts
             rarely do. Modeling taxes, fees, inflation, and variable rates
             are planned for a later, separately reviewed phase of this
-            project — not included in what you see here. See the{" "}
+            project. They are not included in what you see here. See the{" "}
             <a href="/methodology" className="text-teal-dark underline hover:text-teal">
               methodology page
             </a>{" "}

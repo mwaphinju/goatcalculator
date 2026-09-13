@@ -3,7 +3,7 @@ import { siteConfig } from "@/lib/siteConfig";
 
 export function SiteFooter() {
   return (
-    <footer className="mt-auto border-t border-border bg-surface">
+    <footer className="no-print mt-auto border-t border-border bg-surface">
       <div className="mx-auto max-w-5xl px-4 py-8 text-sm text-navy-soft sm:px-6">
         <p className="mb-2">
           {siteConfig.name} calculations run entirely in your browser. Nothing you

@@ -7,6 +7,9 @@ test.describe("Keyboard accessibility", () => {
     const initialBalance = page.getByLabel(/^Initial balance/);
     await initialBalance.focus();
     await expect(initialBalance).toBeFocused();
+    // Starts at its visible zero default; select it all before typing, the
+    // way a keyboard-only visitor would clear it (Ctrl+A, then type).
+    await page.keyboard.press("ControlOrMeta+a");
     await page.keyboard.type("1500");
     await expect(initialBalance).toHaveValue("1500");
   });
@@ -30,7 +33,7 @@ test.describe("Keyboard accessibility", () => {
 
   test("timing radio buttons are operable with the keyboard", async ({ page }) => {
     await page.goto("/calculators/compound-interest");
-    const beginRadio = page.getByLabel(/^Beginning of month/);
+    const beginRadio = page.getByLabel(/^Beginning of each month/);
     await beginRadio.focus();
     await page.keyboard.press("Space");
     await expect(beginRadio).toBeChecked();
@@ -47,5 +50,51 @@ test.describe("Keyboard accessibility", () => {
     await summary.focus();
     await page.keyboard.press("Enter");
     await expect(page.getByText("Compounding frequency")).toBeVisible();
+  });
+
+  test("the monthly schedule's scroll container is keyboard-focusable and scrollable without a pointer", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/calculators/compound-interest");
+    await page.getByLabel(/^Initial balance/).fill("1000");
+    await page.getByLabel(/^Nominal annual interest rate/).fill("12");
+    await page.getByLabel(/^Duration/).fill("12");
+    await page.getByLabel(/^Monthly contribution/).fill("100");
+
+    const scrollRegion = page.getByRole("region", {
+      name: "Monthly schedule table, scrollable horizontally on narrow screens",
+    });
+    await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+
+    await scrollRegion.focus();
+    await expect(scrollRegion).toBeFocused();
+
+    const before = await scrollRegion.evaluate((el) => el.scrollLeft);
+    // Headless Chromium's default keyboard-scroll step for a focused
+    // scrollable region is small (a few pixels per press), so press
+    // several times rather than relying on one or two presses producing a
+    // reliably measurable change.
+    for (let i = 0; i < 15; i++) {
+      await page.keyboard.press("ArrowRight");
+    }
+    const after = await scrollRegion.evaluate((el) => el.scrollLeft);
+    expect(after).toBeGreaterThan(before);
+  });
+
+  test("a required field's state is exposed to assistive technology, not just shown in color", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    const rateField = page.getByLabel(/^Nominal annual interest rate/);
+    await expect(rateField).toHaveAttribute("aria-required", "true");
+
+    await rateField.focus();
+    await rateField.blur();
+    // Once invalid/empty and touched, aria-invalid and aria-describedby
+    // (pointing at the visible error text) are both present so a screen
+    // reader announces the problem, not just a red border.
+    await expect(rateField).toHaveAttribute("aria-invalid", "true");
+    const describedBy = await rateField.getAttribute("aria-describedby");
+    expect(describedBy).toBeTruthy();
+    if (describedBy) {
+      await expect(page.locator(`#${describedBy}`)).toContainText("Enter an annual rate.");
+    }
   });
 });

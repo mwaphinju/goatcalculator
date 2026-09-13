@@ -6,9 +6,17 @@ interface NumberFieldProps {
   unitLabel?: string;
   value: string;
   onChange: (value: string) => void;
+  onBlur?: () => void;
   placeholder?: string;
   errorMessage?: string | null;
   isExampleValue?: boolean;
+  /**
+   * Marks this as a required visitor assumption: appends "(Required)" to
+   * the visible label text (not just a placeholder, so the requirement is
+   * never conveyed by color or placeholder text alone) and sets
+   * aria-required so assistive technology announces it too.
+   */
+  required?: boolean;
   helper?: React.ReactNode;
 }
 
@@ -18,9 +26,11 @@ export function NumberField({
   unitLabel,
   value,
   onChange,
+  onBlur,
   placeholder,
   errorMessage,
   isExampleValue,
+  required,
   helper,
 }: NumberFieldProps) {
   const errorId = `${id}-error`;
@@ -37,6 +47,7 @@ export function NumberField({
           {unitLabel ? (
             <span className="ml-1 font-normal text-navy-soft">({unitLabel})</span>
           ) : null}
+          {required ? <span className="ml-1 font-normal text-amber">(Required)</span> : null}
         </label>
       </div>
       <input
@@ -48,7 +59,9 @@ export function NumberField({
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onBlur}
         aria-invalid={errorMessage ? true : undefined}
+        aria-required={required ? true : undefined}
         aria-describedby={describedBy || undefined}
         className={`w-full rounded-md border bg-surface px-3 py-2 text-navy shadow-sm focus:outline-none ${
           errorMessage ? "border-red" : "border-border"
@@ -56,7 +69,7 @@ export function NumberField({
       />
       {isExampleValue ? (
         <p id={exampleId} className="mt-1 text-xs text-amber">
-          Example value — not yet edited
+          Example value. Not yet edited.
         </p>
       ) : null}
       {errorMessage ? (

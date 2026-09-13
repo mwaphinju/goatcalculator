@@ -57,3 +57,29 @@ body {
 .skip-link:focus {
   left: 0;
 }
+
+/*
+ * Print-friendly result view: hide interactive-only chrome (site
+ * header/footer, and anything explicitly marked .no-print, such as the
+ * print and CSV buttons themselves and "Try an example" affordances), and
+ * force every <details> panel (assumptions summaries) open so their
+ * content is part of the printed page regardless of whether a visitor had
+ * expanded them on screen.
+ */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  details summary {
+    display: none !important;
+  }
+
+  details > *:not(summary) {
+    display: block !important;
+    /* Modern browsers hide a closed <details>'s content via
+       content-visibility, not just display, so a display override alone
+       does not make it render (or print) — both are needed. */
+    content-visibility: visible !important;
+  }
+}

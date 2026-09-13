@@ -6,11 +6,16 @@ import { COMPOUND_INTEREST_LIMITS, MAX_YEARS } from "@/lib/finance/limits";
 import { validateMonthsField, validateNumberField, type FieldValidation } from "@/lib/finance/validation";
 import { formatDuration, formatMoney } from "@/lib/finance/format";
 import type { CompoundInterestInput, ContributionTiming } from "@/lib/finance/types";
-import { NumberField } from "./NumberField";
-import { FieldHelp } from "./FieldHelp";
+import { useExampleOrigin } from "@/hooks/useExampleOrigin";
+import { useTouchedFields } from "@/hooks/useTouchedFields";
+import { NumberField } from "@/components/shared/NumberField";
+import { FieldHelp } from "@/components/shared/FieldHelp";
+import { StatCard } from "@/components/shared/StatCard";
+import { GrowthChart } from "@/components/shared/GrowthChart";
+import { RadioGroup } from "@/components/shared/RadioGroup";
+import { MonthlyScheduleTable } from "@/components/shared/MonthlyScheduleTable";
+import { PrintButton } from "@/components/shared/PrintButton";
 import { AssumptionsSummary } from "./AssumptionsSummary";
-import { GrowthChart } from "./GrowthChart";
-import { ScheduleTable } from "./ScheduleTable";
 
 const FIELD_KEYS = ["initialBalance", "rate", "duration", "contribution"] as const;
 type FieldKey = (typeof FIELD_KEYS)[number];
@@ -23,7 +28,6 @@ const FIELD_LABELS: Record<FieldKey, string> = {
 };
 
 type DurationMode = "months" | "years-months";
-type Origin = "empty" | "example" | "user";
 
 const EXAMPLE = {
   initialBalance: "1000",
@@ -61,63 +65,42 @@ function validateYearsMonthsDuration(yearsStr: string, monthsPartStr: string): F
   return { status: "valid", value: total };
 }
 
+/** Restores a visible zero default on blur if a visitor clears the field, rather than ever silently treating a blank field as zero. */
+function restoreZeroOnBlur(value: string, setValue: (v: string) => void) {
+  if (value.trim() === "") setValue("0");
+}
+
 export function CompoundInterestCalculator() {
   const idPrefix = useId();
 
-  const [initialBalanceStr, setInitialBalanceStr] = useState("");
+  // Initial balance, monthly contribution and duration are all "defaulted
+  // zero" fields: they start visibly at 0/0 months, which is immediately a
+  // valid, calculable answer. The annual rate is the one required field:
+  // it starts empty and blocks calculation until the visitor enters one.
+  const [initialBalanceStr, setInitialBalanceStr] = useState("0");
   const [rateStr, setRateStr] = useState("");
-  const [contributionStr, setContributionStr] = useState("");
+  const [contributionStr, setContributionStr] = useState("0");
   const [timing, setTiming] = useState<ContributionTiming>("end");
 
   const [durationMode, setDurationMode] = useState<DurationMode>("months");
-  const [monthsStr, setMonthsStr] = useState("");
-  const [yearsStr, setYearsStr] = useState("");
-  const [monthsPartStr, setMonthsPartStr] = useState("");
+  const [monthsStr, setMonthsStr] = useState("0");
+  const [yearsStr, setYearsStr] = useState("0");
+  const [monthsPartStr, setMonthsPartStr] = useState("0");
 
-  const [origin, setOrigin] = useState<Origin>("empty");
-  const [exampleResidue, setExampleResidue] = useState<Set<FieldKey>>(new Set());
-
-  function onUserEdit(key: FieldKey) {
-    if (origin === "example") {
-      setExampleResidue(new Set(FIELD_KEYS.filter((k) => k !== key)));
-      setOrigin("user");
-    } else if (origin === "user") {
-      if (exampleResidue.has(key)) {
-        const next = new Set(exampleResidue);
-        next.delete(key);
-        setExampleResidue(next);
-      }
-    } else {
-      setOrigin("user");
-    }
-  }
-
-  function onTimingEdit() {
-    // Timing is a mechanics choice, not one of the four tracked assumption
-    // fields, so it never gains its own "still shows example value" tag —
-    // but changing it while an example is loaded still means the visitor
-    // acted, so the scenario stops being untouched. None of the four
-    // tracked fields were edited, so all of them are still carrying
-    // example values.
-    if (origin === "example") {
-      setExampleResidue(new Set(FIELD_KEYS));
-      setOrigin("user");
-    } else if (origin === "empty") {
-      setOrigin("user");
-    }
-  }
+  const { origin, exampleResidue, onFieldEdit, onUntrackedEdit, activateExample } =
+    useExampleOrigin<FieldKey>(FIELD_KEYS);
+  const { touched, markTouched } = useTouchedFields<"rate">();
 
   function tryExample() {
     setInitialBalanceStr(EXAMPLE.initialBalance);
     setRateStr(EXAMPLE.rate);
     setDurationMode("months");
     setMonthsStr(String(EXAMPLE.months));
-    setYearsStr("");
-    setMonthsPartStr("");
+    setYearsStr("0");
+    setMonthsPartStr("0");
     setContributionStr(EXAMPLE.contribution);
     setTiming(EXAMPLE.timing);
-    setOrigin("example");
-    setExampleResidue(new Set());
+    activateExample();
   }
 
   const vInitialBalance = validateNumberField(
@@ -143,9 +126,14 @@ export function CompoundInterestCalculator() {
     contribution: vContribution,
   };
 
-  const missingFields = FIELD_KEYS.filter((k) => validations[k].status === "empty");
-  const invalidFields = FIELD_KEYS.filter((k) => validations[k].status === "invalid");
-  const allValid = missingFields.length === 0 && invalidFields.length === 0;
+  const allValid = FIELD_KEYS.every((k) => validations[k].status === "valid");
+
+  // "Attempted calculation": the visitor has done something (edited any
+  // field, or loaded the example) beyond the page's untouched starting
+  // state. Combined with the rate field's own touched state, this is what
+  // gates the rate's required message so it never appears on first paint.
+  const attempted = origin !== "default";
+  const showRateError = (touched.has("rate") || attempted) && vRate.status !== "valid";
 
   let input: CompoundInterestInput | null = null;
   if (
@@ -170,6 +158,7 @@ export function CompoundInterestCalculator() {
   const showResidueNotice = origin === "user" && exampleResidue.size > 0;
 
   const errorMessage = (key: FieldKey) => {
+    if (key === "rate") return showRateError ? "Enter an annual rate." : null;
     const v = validations[key];
     return v.status === "invalid" ? v.message : null;
   };
@@ -183,7 +172,7 @@ export function CompoundInterestCalculator() {
 
         {showExampleBanner ? (
           <p className="rounded-md border border-amber bg-amber-soft px-3 py-2 text-sm font-medium text-amber">
-            Illustrative example — edit these assumptions.
+            Illustrative example. Edit these assumptions.
           </p>
         ) : null}
         {showResidueNotice ? (
@@ -204,9 +193,9 @@ export function CompoundInterestCalculator() {
           value={initialBalanceStr}
           onChange={(v) => {
             setInitialBalanceStr(v);
-            onUserEdit("initialBalance");
+            onFieldEdit("initialBalance");
           }}
-          placeholder="e.g. 1000"
+          onBlur={() => restoreZeroOnBlur(initialBalanceStr, setInitialBalanceStr)}
           errorMessage={errorMessage("initialBalance")}
           isExampleValue={exampleResidue.has("initialBalance")}
         />
@@ -218,15 +207,17 @@ export function CompoundInterestCalculator() {
           value={rateStr}
           onChange={(v) => {
             setRateStr(v);
-            onUserEdit("rate");
+            onFieldEdit("rate");
           }}
+          onBlur={() => markTouched("rate")}
           placeholder="e.g. 4.5"
+          required
           errorMessage={errorMessage("rate")}
           isExampleValue={exampleResidue.has("rate")}
           helper={
             <FieldHelp
               label={FIELD_LABELS.rate}
-              explanation="This is the nominal annual interest rate your balance is assumed to earn, before monthly compounding is applied. It is not an APY. Different savings accounts, CDs and investments pay very different rates, and rates change over time — there is no single correct number to enter."
+              explanation="This is the nominal annual interest rate your balance is assumed to earn, before monthly compounding is applied. It is not an APY. Different savings accounts, CDs and investments pay very different rates, and rates change over time. There is no single correct number to enter."
               onTryExample={tryExample}
             />
           }
@@ -263,9 +254,9 @@ export function CompoundInterestCalculator() {
               value={monthsStr}
               onChange={(v) => {
                 setMonthsStr(v);
-                onUserEdit("duration");
+                onFieldEdit("duration");
               }}
-              placeholder="e.g. 120"
+              onBlur={() => restoreZeroOnBlur(monthsStr, setMonthsStr)}
               errorMessage={errorMessage("duration")}
               isExampleValue={exampleResidue.has("duration")}
             />
@@ -278,9 +269,9 @@ export function CompoundInterestCalculator() {
                   value={yearsStr}
                   onChange={(v) => {
                     setYearsStr(v);
-                    onUserEdit("duration");
+                    onFieldEdit("duration");
                   }}
-                  placeholder="e.g. 10"
+                  onBlur={() => restoreZeroOnBlur(yearsStr, setYearsStr)}
                 />
               </div>
               <div className="flex-1">
@@ -290,9 +281,9 @@ export function CompoundInterestCalculator() {
                   value={monthsPartStr}
                   onChange={(v) => {
                     setMonthsPartStr(v);
-                    onUserEdit("duration");
+                    onFieldEdit("duration");
                   }}
-                  placeholder="0–11"
+                  onBlur={() => restoreZeroOnBlur(monthsPartStr, setMonthsPartStr)}
                 />
               </div>
               {errorMessage("duration") ? (
@@ -301,7 +292,7 @@ export function CompoundInterestCalculator() {
                 </p>
               ) : null}
               {exampleResidue.has("duration") ? (
-                <p className="col-span-2 text-xs text-amber">Example value — not yet edited</p>
+                <p className="col-span-2 text-xs text-amber">Example value. Not yet edited.</p>
               ) : null}
             </div>
           )}
@@ -314,9 +305,9 @@ export function CompoundInterestCalculator() {
           value={contributionStr}
           onChange={(v) => {
             setContributionStr(v);
-            onUserEdit("contribution");
+            onFieldEdit("contribution");
           }}
-          placeholder="e.g. 100"
+          onBlur={() => restoreZeroOnBlur(contributionStr, setContributionStr)}
           errorMessage={errorMessage("contribution")}
           isExampleValue={exampleResidue.has("contribution")}
           helper={
@@ -328,99 +319,66 @@ export function CompoundInterestCalculator() {
           }
         />
 
-        <fieldset>
-          <legend className="mb-1 text-sm font-medium text-navy">
-            When is the monthly contribution added?
-          </legend>
-          <div className="flex flex-col gap-1.5 text-sm text-navy-soft">
-            <label className="inline-flex items-center gap-1.5">
-              <input
-                type="radio"
-                name={`${idPrefix}-timing`}
-                checked={timing === "end"}
-                onChange={() => {
-                  setTiming("end");
-                  onTimingEdit();
-                }}
-              />
-              End of month (contribution added after that month&apos;s interest)
-            </label>
-            <label className="inline-flex items-center gap-1.5">
-              <input
-                type="radio"
-                name={`${idPrefix}-timing`}
-                checked={timing === "begin"}
-                onChange={() => {
-                  setTiming("begin");
-                  onTimingEdit();
-                }}
-              />
-              Beginning of month (contribution added before that month&apos;s interest)
-            </label>
-          </div>
-        </fieldset>
+        <RadioGroup
+          legend="When is the monthly contribution added?"
+          name={`${idPrefix}-timing`}
+          value={timing}
+          onChange={(v) => {
+            setTiming(v as ContributionTiming);
+            onUntrackedEdit();
+          }}
+          options={[
+            { value: "end", label: "End of each month (contribution added after that month's interest)" },
+            { value: "begin", label: "Beginning of each month (contribution added before that month's interest)" },
+          ]}
+        />
 
         {!allValid ? (
           <div
             role="status"
             className="rounded-md border border-border bg-surface px-4 py-3 text-sm text-navy-soft"
           >
-            {missingFields.length > 0 ? (
-              <p>
-                Enter your{" "}
-                {missingFields.map((k) => FIELD_LABELS[k].toLowerCase()).join(", ")} to see
-                your projection. Zero is a valid answer for any of these — leave a
-                field blank only if you haven&apos;t decided yet.
-              </p>
-            ) : (
-              <p>Fix the highlighted field(s) above to see your projection.</p>
-            )}
+            <p>
+              Enter an annual rate and your assumptions to see how savings
+              could grow. A zero amount means none.
+            </p>
           </div>
         ) : null}
       </section>
 
       <section aria-labelledby={`${idPrefix}-results-heading`} className="space-y-6">
-        <h2 id={`${idPrefix}-results-heading`} className="text-lg font-semibold text-navy">
-          Projection
-        </h2>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 id={`${idPrefix}-results-heading`} className="text-lg font-semibold text-navy">
+            Projection
+          </h2>
+          {result ? <PrintButton /> : null}
+        </div>
 
         {!result || !input ? (
           <p className="rounded-md border border-dashed border-border px-4 py-6 text-center text-sm text-navy-soft">
-            Your results will appear here once every field above has a value.
+            Enter an annual rate and your assumptions to see how savings
+            could grow. A zero amount means none.
           </p>
         ) : (
           <>
             {showExampleBanner ? (
               <p className="rounded-md border border-amber bg-amber-soft px-3 py-2 text-sm font-medium text-amber">
-                Illustrative example — edit these assumptions.
+                Illustrative example. Edit these assumptions.
               </p>
             ) : null}
 
-            <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-              <div className="rounded-md border border-border bg-surface p-3">
-                <dt className="text-xs text-navy-soft">Final balance</dt>
-                <dd className="text-xl font-semibold tabular-nums text-navy break-words">
-                  {formatMoney(result.finalBalance)}
-                </dd>
-              </div>
-              <div className="rounded-md border border-border bg-surface p-3">
-                <dt className="text-xs text-navy-soft">Initial balance</dt>
-                <dd className="text-xl font-semibold tabular-nums text-navy break-words">
-                  {formatMoney(result.initialBalance)}
-                </dd>
-              </div>
-              <div className="rounded-md border border-border bg-surface p-3">
-                <dt className="text-xs text-navy-soft">Total contributions</dt>
-                <dd className="text-xl font-semibold tabular-nums text-navy break-words">
-                  {formatMoney(result.totalContributions)}
-                </dd>
-              </div>
-              <div className="rounded-md border border-border bg-surface p-3">
-                <dt className="text-xs text-navy-soft">Total interest</dt>
-                <dd className="text-xl font-semibold tabular-nums text-teal-dark break-words">
-                  {formatMoney(result.totalInterest)}
-                </dd>
-              </div>
+            <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <StatCard label="Final balance" value={formatMoney(result.finalBalance)} />
+              <StatCard label="Initial balance" value={formatMoney(result.initialBalance)} />
+              <StatCard
+                label="Total contributions"
+                value={formatMoney(result.totalContributions)}
+              />
+              <StatCard
+                label="Total interest"
+                value={formatMoney(result.totalInterest)}
+                accentClassName="text-teal-dark"
+              />
             </dl>
 
             <p className="text-sm text-navy-soft">
@@ -430,17 +388,18 @@ export function CompoundInterestCalculator() {
               {formatMoney(result.totalContributions)} is money you contributed
               yourself, and {formatMoney(result.totalInterest)} is interest your
               money earned by compounding monthly.
+              {input.months === 0
+                ? " No monthly growth period was applied because the duration is 0 months."
+                : ""}
             </p>
 
-            <GrowthChart schedule={result.schedule} initialBalance={result.initialBalance} />
+            <GrowthChart schedule={result.schedule} startingBalance={result.initialBalance} />
 
             <AssumptionsSummary input={input} isExample={showExampleBanner} />
 
             <div>
-              <h3 className="mb-2 text-sm font-semibold text-navy">
-                Month-by-month schedule
-              </h3>
-              <ScheduleTable schedule={result.schedule} />
+              <h3 className="mb-2 text-sm font-semibold text-navy">Monthly schedule</h3>
+              <MonthlyScheduleTable schedule={result.schedule} />
             </div>
           </>
         )}

@@ -1,16 +1,8 @@
 import Decimal from "decimal.js";
-import type {
-  CompoundInterestInput,
-  CompoundInterestResult,
-  ScheduleRow,
-} from "./types";
+import { monthlyRateFromNominal } from "./rate";
+import { projectBalance } from "./projection";
+import type { CompoundInterestInput, CompoundInterestResult } from "./types";
 
-/**
- * A local Decimal constructor with precision high enough that a 600-month
- * schedule (the calculator's documented maximum) does not accumulate
- * meaningful rounding error, independent of whatever precision another part
- * of the app might configure on the global Decimal object.
- */
 const D = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
 
 /**
@@ -18,8 +10,13 @@ const D = Decimal.clone({ precision: 40, rounding: Decimal.ROUND_HALF_UP });
  *
  * Model (monthly compounding only):
  *   i = (annualRatePercent / 100) / 12
- *   End-of-month contributions:   B_next = B * (1 + i) + C
- *   Beginning-of-month contributions: B_next = (B + C) * (1 + i)
+ *   End of each month:       B_next = B * (1 + i) + C
+ *   Beginning of each month: B_next = (B + C) * (1 + i)
+ *
+ * The per-month step and schedule-building loop live in projection.ts and
+ * are shared with the savings goal, savings time, and savings comparison
+ * calculators — this function only resolves the nominal rate to a monthly
+ * rate and reports the result in the shape Phase 1 established.
  *
  * `totalInterest` is defined as the residual
  * (finalBalance - initialBalance - totalContributions) rather than the sum
@@ -44,41 +41,16 @@ export function calculateCompoundInterest(
 
   const P = new D(input.initialBalance);
   const C = new D(input.monthlyContribution);
-  const monthlyRate = new D(annualRatePercent).div(100).div(12);
-  const onePlusI = monthlyRate.plus(1);
+  const monthlyRate = monthlyRateFromNominal(annualRatePercent);
 
-  let balance = P;
-  let totalContributions = new D(0);
-  const schedule: ScheduleRow[] = [];
+  const { finalBalance, totalContributions, schedule } = projectBalance(
+    P,
+    monthlyRate,
+    months,
+    C,
+    timing,
+  );
 
-  for (let m = 1; m <= months; m++) {
-    const startingBalance = balance;
-    let endingBalance: Decimal;
-    let interestThisMonth: Decimal;
-
-    if (timing === "end") {
-      const afterGrowth = startingBalance.times(onePlusI);
-      interestThisMonth = afterGrowth.minus(startingBalance);
-      endingBalance = afterGrowth.plus(C);
-    } else {
-      const afterContribution = startingBalance.plus(C);
-      endingBalance = afterContribution.times(onePlusI);
-      interestThisMonth = endingBalance.minus(afterContribution);
-    }
-
-    totalContributions = totalContributions.plus(C);
-    schedule.push({
-      month: m,
-      startingBalance: startingBalance.toString(),
-      contribution: C.toString(),
-      interest: interestThisMonth.toString(),
-      endingBalance: endingBalance.toString(),
-    });
-
-    balance = endingBalance;
-  }
-
-  const finalBalance = balance;
   const totalInterest = finalBalance.minus(P).minus(totalContributions);
 
   return {

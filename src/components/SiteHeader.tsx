@@ -3,7 +3,7 @@ import { siteConfig } from "@/lib/siteConfig";
 
 export function SiteHeader() {
   return (
-    <header className="border-b border-border bg-surface">
+    <header className="no-print border-b border-border bg-surface">
       <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-x-4 gap-y-1 px-4 py-4 sm:px-6">
         <Link
           href="/"

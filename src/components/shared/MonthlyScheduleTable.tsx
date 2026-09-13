@@ -1,26 +1,31 @@
 import { formatMoney } from "@/lib/finance/format";
 import type { ScheduleRow } from "@/lib/finance/types";
+import { ScrollableRegion } from "./ScrollableRegion";
 
-interface ScheduleTableProps {
+interface MonthlyScheduleTableProps {
   schedule: ScheduleRow[];
+  emptyMessage?: string;
+  captionPrefix?: string;
+  regionLabel?: string;
 }
 
-export function ScheduleTable({ schedule }: ScheduleTableProps) {
+export function MonthlyScheduleTable({
+  schedule,
+  emptyMessage = "No monthly schedule to show for a duration of 0 months.",
+  captionPrefix = "Monthly balance schedule",
+  regionLabel = "Monthly schedule table, scrollable horizontally on narrow screens",
+}: MonthlyScheduleTableProps) {
   if (schedule.length === 0) {
-    return (
-      <p className="text-sm text-navy-soft">
-        No monthly schedule to show for a duration of 0 months.
-      </p>
-    );
+    return <p className="text-sm text-navy-soft">{emptyMessage}</p>;
   }
 
   return (
-    <div className="max-h-96 overflow-auto rounded-md border border-border">
+    <ScrollableRegion ariaLabel={regionLabel}>
       <table className="w-full min-w-[560px] border-collapse text-sm">
         <caption className="sr-only">
-          Month-by-month balance schedule: starting balance, contribution,
-          interest earned and ending balance for each of {schedule.length}{" "}
-          months.
+          {captionPrefix}: starting balance, contribution, interest earned
+          and ending balance for each of {schedule.length}{" "}
+          {schedule.length === 1 ? "month" : "months"}.
         </caption>
         <thead className="sticky top-0 bg-teal-soft text-navy">
           <tr>
@@ -53,9 +58,7 @@ export function ScheduleTable({ schedule }: ScheduleTableProps) {
               <td className="px-3 py-1.5 text-right tabular-nums">
                 {formatMoney(row.contribution)}
               </td>
-              <td className="px-3 py-1.5 text-right tabular-nums">
-                {formatMoney(row.interest)}
-              </td>
+              <td className="px-3 py-1.5 text-right tabular-nums">{formatMoney(row.interest)}</td>
               <td className="px-3 py-1.5 text-right font-medium tabular-nums">
                 {formatMoney(row.endingBalance)}
               </td>
@@ -63,6 +66,6 @@ export function ScheduleTable({ schedule }: ScheduleTableProps) {
           ))}
         </tbody>
       </table>
-    </div>
+    </ScrollableRegion>
   );
 }

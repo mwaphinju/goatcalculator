@@ -1,9 +1,12 @@
+"use client";
+
+import { useId } from "react";
 import { formatMoney } from "@/lib/finance/format";
 import type { ScheduleRow } from "@/lib/finance/types";
 
 interface GrowthChartProps {
   schedule: ScheduleRow[];
-  initialBalance: string;
+  startingBalance: string;
 }
 
 const WIDTH = 640;
@@ -21,13 +24,15 @@ function samplePoints<T>(items: T[], maxPoints: number): T[] {
   return sampled;
 }
 
-export function GrowthChart({ schedule, initialBalance }: GrowthChartProps) {
+export function GrowthChart({ schedule, startingBalance }: GrowthChartProps) {
+  const chartDescriptionId = useId();
+
   if (schedule.length === 0) {
     return null;
   }
 
   const points = samplePoints(schedule, 60);
-  const startBalance = Number(initialBalance);
+  const startBalance = Number(startingBalance);
 
   const principalSeries: { month: number; value: number }[] = [
     { month: 0, value: startBalance },
@@ -75,8 +80,6 @@ export function GrowthChart({ schedule, initialBalance }: GrowthChartProps) {
   const finalPrincipal = principalSeries[principalSeries.length - 1].value;
 
   const yTicks = [0, 0.25, 0.5, 0.75, 1].map((f) => Math.round(maxValue * f));
-
-  const chartDescriptionId = "growth-chart-description";
 
   return (
     <figure>
@@ -127,7 +130,7 @@ export function GrowthChart({ schedule, initialBalance }: GrowthChartProps) {
           <span className="inline-block h-0.5 w-4 bg-teal-dark" aria-hidden /> Balance
         </span>
         <span className="inline-flex items-center gap-1.5">
-          <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-navy-soft" aria-hidden /> Contributed + initial
+          <span className="inline-block h-0.5 w-4 border-t-2 border-dashed border-navy-soft" aria-hidden /> Contributed plus starting balance
         </span>
       </div>
     </figure>

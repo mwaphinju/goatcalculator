@@ -80,9 +80,80 @@ test.describe("Screenshots of key UI states", () => {
     await page.screenshot({ path: `${DIR}/09-ci-mobile-390.png`, fullPage: true });
   });
 
-  test("compound interest — 320px small phone", async ({ page }) => {
+  test("compound interest — 320px small phone, empty state", async ({ page }) => {
     await page.setViewportSize({ width: 320, height: 700 });
     await page.goto("/calculators/compound-interest");
     await page.screenshot({ path: `${DIR}/10-ci-320.png`, fullPage: true });
+  });
+
+  test("compound interest — 320px small phone, results filled in", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/calculators/compound-interest");
+    await page.getByLabel(/^Initial balance/).fill("1000");
+    await page.getByLabel(/^Nominal annual interest rate/).fill("12");
+    await page.getByLabel(/^Duration/).fill("12");
+    await page.getByLabel(/^Monthly contribution/).fill("100");
+    await page.screenshot({ path: `${DIR}/11-ci-320-results.png`, fullPage: true });
+  });
+
+  test("compound interest — 320px monthly schedule scroll hint", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/calculators/compound-interest");
+    await page.getByLabel(/^Initial balance/).fill("1000");
+    await page.getByLabel(/^Nominal annual interest rate/).fill("12");
+    await page.getByLabel(/^Duration/).fill("12");
+    await page.getByLabel(/^Monthly contribution/).fill("100");
+
+    const heading = page.getByRole("heading", { name: "Monthly schedule" });
+    await heading.scrollIntoViewIfNeeded();
+    const headingBox = await heading.boundingBox();
+    const scrollRegion = page.getByRole("region", {
+      name: "Monthly schedule table, scrollable horizontally on narrow screens",
+    });
+    const regionBox = await scrollRegion.boundingBox();
+
+    if (headingBox && regionBox) {
+      await page.screenshot({
+        path: `${DIR}/12-ci-320-schedule-scroll-hint.png`,
+        clip: {
+          x: 0,
+          y: Math.max(headingBox.y - 12, 0),
+          width: 320,
+          height: Math.min(regionBox.y + regionBox.height - headingBox.y + 24, 700 - (headingBox.y - 12)),
+        },
+      });
+    }
+  });
+
+  test("compound interest — initial state showing the blank required rate (Phase 2 retrofit)", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await page.goto("/calculators/compound-interest");
+    await page.screenshot({ path: `${DIR}/13-ci-retrofit-blank-required-rate.png`, fullPage: false });
+  });
+
+  test("savings goal — with a result", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1600 });
+    await page.goto("/calculators/savings-goal");
+    await page.getByLabel(/^Target balance/).fill("20000");
+    await page.getByLabel(/^Duration/).fill("60");
+    await page.getByRole("textbox", { name: /^Nominal annual rate/ }).fill("6");
+    await page.getByText("Assumptions used").click();
+    await page.screenshot({ path: `${DIR}/14-savings-goal-result.png`, fullPage: true });
+  });
+
+  test("savings time — with a reachable target", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1600 });
+    await page.goto("/calculators/savings-time");
+    await page.getByLabel(/^Target balance/).fill("20000");
+    await page.getByLabel(/^Monthly contribution/).fill("300");
+    await page.getByRole("textbox", { name: /^Nominal annual rate/ }).fill("6");
+    await page.screenshot({ path: `${DIR}/15-savings-time-result.png`, fullPage: true });
+  });
+
+  test("savings comparison — at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/savings-comparison");
+    await page.getByText("Try an example").first().click();
+    await page.screenshot({ path: `${DIR}/16-savings-comparison-320.png`, fullPage: true });
   });
 });

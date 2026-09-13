@@ -8,6 +8,9 @@ function resultValue(page: Page, label: string): Locator {
   return page.locator(`dl > div:has(dt:text-is("${label}")) dd`).first();
 }
 
+const RATE_LABEL = /^Nominal annual interest rate/;
+const REQUIRED_NOTICE = "Enter an annual rate and your assumptions to see how savings could grow. A zero amount means none.";
+
 async function fillScenario(
   page: Page,
   opts: {
@@ -22,7 +25,7 @@ async function fillScenario(
     await page.getByLabel(/^Initial balance/).fill(opts.initialBalance);
   }
   if (opts.rate !== undefined) {
-    await page.getByLabel(/^Nominal annual interest rate/).fill(opts.rate);
+    await page.getByLabel(RATE_LABEL).fill(opts.rate);
   }
   if (opts.months !== undefined) {
     await page.getByLabel(/^Duration/).fill(opts.months);
@@ -31,56 +34,88 @@ async function fillScenario(
     await page.getByLabel(/^Monthly contribution/).fill(opts.contribution);
   }
   if (opts.timing === "begin") {
-    await page.getByLabel(/^Beginning of month/).check();
+    await page.getByLabel(/^Beginning of each month/).check();
   } else if (opts.timing === "end") {
-    await page.getByLabel(/^End of month/).check();
+    await page.getByLabel(/^End of each month/).check();
   }
 }
 
+test.describe("Compound interest calculator — default and required field policy", () => {
+  test("initial balance, monthly contribution and duration visibly default to zero", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    await expect(page.getByLabel(/^Initial balance/)).toHaveValue("0");
+    await expect(page.getByLabel(/^Monthly contribution/)).toHaveValue("0");
+    await expect(page.getByLabel(/^Duration/)).toHaveValue("0");
+  });
+
+  test("annual rate starts blank and its visible label says Required", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    const rateField = page.getByLabel(RATE_LABEL);
+    await expect(rateField).toHaveValue("");
+    await expect(rateField).toHaveAttribute("aria-required", "true");
+    // The label text itself (not just a placeholder) carries "Required".
+    await expect(page.getByText(RATE_LABEL)).toContainText("Required");
+  });
+
+  test("the rate's required message does not show on first paint, only after interaction", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    await expect(page.getByText("Enter an annual rate.")).toHaveCount(0);
+
+    await page.getByLabel(RATE_LABEL).focus();
+    await page.getByLabel(RATE_LABEL).blur();
+    await expect(page.getByText("Enter an annual rate.")).toBeVisible();
+  });
+
+  test("a blank rate blocks calculation even though every other field already has a valid default", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    await expect(page.getByText(REQUIRED_NOTICE).first()).toBeVisible();
+    await expect(resultValue(page, "Final balance")).toHaveCount(0);
+  });
+
+  test("explicitly entered 0% performs a valid no-growth calculation", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    await fillScenario(page, { rate: "0" });
+    await expect(resultValue(page, "Final balance")).toContainText("$0.00");
+    await expect(resultValue(page, "Total interest")).toContainText("$0.00");
+  });
+
+  test("a defaulted zero field restores to 0 on blur if cleared, rather than staying blank", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    const initialBalance = page.getByLabel(/^Initial balance/);
+    await initialBalance.fill("");
+    await expect(initialBalance).toHaveValue("");
+    await initialBalance.blur();
+    await expect(initialBalance).toHaveValue("0");
+  });
+
+  test("a zero-duration result clearly states no monthly growth period was applied", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    await fillScenario(page, { initialBalance: "1000", rate: "12" });
+    // Duration is already 0 by default.
+    await expect(page.getByText(/No monthly growth period was applied because the duration is 0 months\./i)).toBeVisible();
+  });
+});
+
 test.describe("Compound interest calculator — missing/invalid/valid states", () => {
-  test("shows a missing-information message before any input is entered", async ({ page }) => {
-    await page.goto("/calculators/compound-interest");
-    await expect(page.getByText(/Enter your.*to see your projection/i)).toBeVisible();
-    await expect(page.getByText(/Your results will appear here/i)).toBeVisible();
-  });
-
-  test("does not show a result while any required field is empty", async ({ page }) => {
-    await page.goto("/calculators/compound-interest");
-    await fillScenario(page, { initialBalance: "1000", rate: "12", months: "12" });
-    // monthlyContribution still empty
-    await expect(page.getByText(/Your results will appear here/i)).toBeVisible();
-    await expect(page.getByRole("status")).toContainText(/monthly contribution/i);
-  });
-
   test("rejects a negative value with a validation message and no result", async ({ page }) => {
     await page.goto("/calculators/compound-interest");
-    await fillScenario(page, {
-      initialBalance: "-100",
-      rate: "5",
-      months: "12",
-      contribution: "0",
-    });
+    await fillScenario(page, { initialBalance: "-100", rate: "5" });
     await expect(page.getByText(/cannot be negative/i).first()).toBeVisible();
-    await expect(page.getByText(/Your results will appear here/i)).toBeVisible();
+    await expect(resultValue(page, "Final balance")).toHaveCount(0);
   });
 
-  test("clearing a previously-valid field hides the result instead of showing stale data", async ({ page }) => {
+  test("clearing the rate field after a valid result hides the result instead of showing stale data", async ({ page }) => {
     await page.goto("/calculators/compound-interest");
-    await fillScenario(page, {
-      initialBalance: "1000",
-      rate: "12",
-      months: "12",
-      contribution: "0",
-    });
+    await fillScenario(page, { initialBalance: "1000", rate: "12", months: "12" });
     await expect(resultValue(page, "Final balance")).toContainText("$1,126.83");
 
-    await page.getByLabel(/^Initial balance/).fill("");
-    await expect(page.getByText(/Your results will appear here/i)).toBeVisible();
+    await page.getByLabel(RATE_LABEL).fill("");
+    await expect(resultValue(page, "Final balance")).toHaveCount(0);
     await expect(page.getByText("$1,126.83")).toHaveCount(0);
   });
 });
 
-test.describe("Compound interest calculator — numerical fixtures", () => {
+test.describe("Compound interest calculator — numerical fixtures (unchanged from Phase 1)", () => {
   test("Fixture A: $1,000 @ 12%, 12 months, no contributions => $1,126.83", async ({ page }) => {
     await page.goto("/calculators/compound-interest");
     await fillScenario(page, {
@@ -147,7 +182,7 @@ test.describe("Compound interest calculator — numerical fixtures", () => {
     });
     const endBalanceText = await resultValue(page, "Final balance").innerText();
 
-    await page.getByLabel(/^Beginning of month/).check();
+    await page.getByLabel(/^Beginning of each month/).check();
     const beginBalanceText = await resultValue(page, "Final balance").innerText();
 
     const parse = (s: string) => Number(s.replace(/[^0-9.]/g, ""));
@@ -162,15 +197,15 @@ test.describe("Compound interest calculator — example mode", () => {
     await page.getByText("Not sure what to enter?").first().click();
     await page.getByRole("button", { name: "Try an example" }).first().click();
 
-    await expect(page.getByText("Illustrative example — edit these assumptions.").first()).toBeVisible();
+    await expect(page.getByText("Illustrative example. Edit these assumptions.").first()).toBeVisible();
     await expect(page.getByLabel(/^Initial balance/)).toHaveValue("1000");
-    await expect(page.getByLabel(/^Nominal annual interest rate/)).toHaveValue("6");
+    await expect(page.getByLabel(RATE_LABEL)).toHaveValue("6");
     await expect(resultValue(page, "Final balance")).not.toHaveText("");
 
     // Edit one field — the example label must disappear immediately, and a
     // residue notice must explain which fields still hold example values.
-    await page.getByLabel(/^Nominal annual interest rate/).fill("7");
-    await expect(page.getByText("Illustrative example — edit these assumptions.")).toHaveCount(0);
+    await page.getByLabel(RATE_LABEL).fill("7");
+    await expect(page.getByText("Illustrative example. Edit these assumptions.")).toHaveCount(0);
     await expect(page.getByText(/still show example values/i)).toBeVisible();
     await expect(page.getByText(/still show example values/i)).toContainText("Initial balance");
     await expect(page.getByText(/still show example values/i)).toContainText("Monthly contribution");
@@ -181,6 +216,14 @@ test.describe("Compound interest calculator — example mode", () => {
     await page.getByLabel(/^Duration/).fill("24");
     await page.getByLabel(/^Monthly contribution/).fill("50");
     await expect(page.getByText(/still show example values/i)).toHaveCount(0);
+  });
+
+  test("a defaulted zero value is never itself labeled as an illustrative example", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+    // On first load, initial balance/contribution/duration hold their
+    // defaults, not example values, and none of them should carry the
+    // "Example value" tag.
+    await expect(page.getByText("Example value. Not yet edited.")).toHaveCount(0);
   });
 
   test("example rate is never described as current, typical, recommended or guaranteed", async ({ page }) => {
@@ -209,7 +252,7 @@ test.describe("Compound interest calculator — assumptions summary sync", () =>
     await expect(summary).toContainText("4.50%");
     await expect(summary).toContainText("36 months");
     await expect(summary).toContainText("$75.00");
-    await expect(summary).toContainText("Beginning of month");
+    await expect(summary).toContainText("Beginning of each month");
     await expect(summary).toContainText("Monthly");
   });
 });
@@ -227,13 +270,51 @@ test.describe("Compound interest calculator — chart and table consistency", ()
 
     await expect(page.locator("figcaption")).toContainText("$2,395.08");
 
-    // Scoped to the month-by-month schedule table specifically — the page
+    // Scoped to the monthly schedule table specifically — the page
     // also has a small static worked-example table further down.
     const scheduleTable = page.locator("table", {
-      has: page.locator("caption", { hasText: "Month-by-month balance schedule" }),
+      has: page.locator("caption", { hasText: "Monthly balance schedule" }),
     });
     const lastRow = scheduleTable.locator("tbody tr").last();
     await expect(lastRow).toContainText("12");
     await expect(lastRow.locator("td").last()).toContainText("$2,395.08");
+  });
+});
+
+test.describe("Compound interest calculator — timing label wording", () => {
+  test("timing radios use the exact required wording, including the accessible name", async ({ page }) => {
+    await page.goto("/calculators/compound-interest");
+
+    // Exact accessible names (not just a prefix match) for the two radios.
+    await expect(
+      page.getByRole("radio", { name: "End of each month (contribution added after that month's interest)" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("radio", {
+        name: "Beginning of each month (contribution added before that month's interest)",
+      }),
+    ).toBeVisible();
+
+    // The old wording must not appear anywhere on the page. Note "End of
+    // each month" does not contain the substring "End of month", so a
+    // plain toContain check is sufficient here.
+    const bodyText = await page.locator("body").innerText();
+    expect(bodyText).not.toContain("End of month");
+    expect(bodyText).not.toContain("Beginning of month");
+    expect(bodyText).toContain("End of each month");
+    expect(bodyText).toContain("Beginning of each month");
+
+    // The assumptions summary (an associated accessible description) also
+    // uses the corrected wording once a scenario is filled in.
+    await fillScenario(page, {
+      initialBalance: "1000",
+      rate: "5",
+      months: "12",
+      contribution: "50",
+      timing: "begin",
+    });
+    await page.getByText("Assumptions used").click();
+    const summary = page.locator("details", { has: page.getByText("Assumptions used") });
+    await expect(summary).toContainText("Beginning of each month");
   });
 });

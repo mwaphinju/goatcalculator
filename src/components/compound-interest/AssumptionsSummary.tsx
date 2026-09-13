@@ -44,7 +44,7 @@ export function AssumptionsSummary({ input, isExample }: AssumptionsSummaryProps
         <div className="flex justify-between gap-2 sm:block">
           <dt className="text-navy-soft">Contribution timing</dt>
           <dd className="font-medium text-navy">
-            {input.timing === "end" ? "End of month" : "Beginning of month"}
+            {input.timing === "end" ? "End of each month" : "Beginning of each month"}
           </dd>
         </div>
       </dl>
