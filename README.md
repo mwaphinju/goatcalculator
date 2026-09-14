@@ -84,6 +84,11 @@ npx serve out
 
 ## Deployment
 
-Intended for a Render Static Site, serving the `out/` directory produced by
-`npm run build`. Not deployed as part of this phase. No domain is assumed —
-see `.env.example`.
+Deployed as a Render Static Site, serving the `out/` directory produced by
+`npm ci && npm run build`. Configuration lives in `render.yaml` (a Render
+Blueprint): connect the repository in the Render dashboard ("New" →
+"Static Site" or "New" → "Blueprint"), confirm the build command
+(`npm ci && npm run build`) and publish directory (`out`), then set
+`NEXT_PUBLIC_SITE_URL` in the service's Environment tab to its actual live
+HTTPS URL and redeploy. See `docs/SEO_LAUNCH_CHECKLIST.md` for the full
+post-deployment checklist and `.env.example` for what that variable does.
