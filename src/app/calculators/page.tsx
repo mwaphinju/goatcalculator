@@ -104,6 +104,21 @@ export default function CalculatorsPage() {
             </p>
           </Link>
         </li>
+        <li>
+          <Link
+            href="/calculators/savings-scenarios"
+            className="block rounded-lg border border-border bg-surface p-5 hover:border-teal"
+          >
+            <h2 className="mb-1 font-semibold text-navy">
+              Savings scenario calculator
+            </h2>
+            <p className="text-sm text-navy-soft">
+              Compare up to three savings possibilities using assumptions
+              you choose, including monthly contributions, account fees,
+              and inflation.
+            </p>
+          </Link>
+        </li>
       </ul>
     </div>
   );

@@ -279,6 +279,66 @@ test.describe("Phase 3 loan calculators: usability at all required widths", () =
   });
 });
 
+test.describe("Phase 4 savings scenario calculator: usability at all required widths", () => {
+  const widths = [320, 390, 768, 1440];
+
+  for (const width of widths) {
+    test(`savings scenarios page has no horizontal overflow at ${width}px with a full result shown`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto("/calculators/savings-scenarios");
+      await page.getByText("Not sure what to enter?").click();
+      await page.getByRole("button", { name: "Try an example" }).click();
+      const hasOverflow = await page.evaluate(
+        () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+      );
+      expect(hasOverflow).toBe(false);
+    });
+  }
+
+  test("three scenario input groups stack to one column on mobile and sit side by side on desktop", async ({ page }) => {
+    await page.goto("/calculators/savings-scenarios");
+
+    await page.setViewportSize({ width: 390, height: 900 });
+    const aMobile = await page.getByRole("group", { name: "Scenario A" }).boundingBox();
+    const bMobile = await page.getByRole("group", { name: "Scenario B" }).boundingBox();
+    expect(aMobile && bMobile).toBeTruthy();
+    if (aMobile && bMobile) {
+      expect(bMobile.y).toBeGreaterThan(aMobile.y);
+    }
+
+    await page.setViewportSize({ width: 1440, height: 900 });
+    const aDesktop = await page.getByRole("group", { name: "Scenario A" }).boundingBox();
+    const bDesktop = await page.getByRole("group", { name: "Scenario B" }).boundingBox();
+    expect(aDesktop && bDesktop).toBeTruthy();
+    if (aDesktop && bDesktop) {
+      expect(Math.abs(aDesktop.y - bDesktop.y)).toBeLessThan(20);
+      expect(bDesktop.x).toBeGreaterThan(aDesktop.x + aDesktop.width / 2);
+    }
+  });
+
+  test("savings scenarios monthly schedule scroll hint appears only when it doesn't fit, and no page overflow results", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByText("Not sure what to enter?").click();
+    await page.getByRole("button", { name: "Try an example" }).click();
+    await expect(page.getByText("Scroll to view all columns.").first()).toBeVisible();
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+  });
+
+  test("three scenarios remain distinguishable without color alone (each chart line has its own dash pattern)", async ({ page }) => {
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByText("Not sure what to enter?").click();
+    await page.getByRole("button", { name: "Try an example" }).click();
+    const paths = page.locator("figure svg path");
+    await expect(paths).toHaveCount(3);
+    const dasharrays = await paths.evaluateAll((els) => els.map((el) => el.getAttribute("stroke-dasharray")));
+    expect(new Set(dasharrays).size).toBe(3);
+  });
+});
+
 test.describe("Results position relative to inputs", () => {
   test("on desktop, results sit beside inputs (side by side)", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });

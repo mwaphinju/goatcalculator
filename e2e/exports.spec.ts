@@ -114,6 +114,29 @@ test.describe("CSV export", () => {
     expect(csv).toContain("Month,Baseline balance,Extra payment balance");
   });
 
+  test("savings scenarios CSV includes all three scenarios, assumptions, and the monthly schedule", async ({ page }) => {
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByText("Not sure what to enter?").click();
+    await page.getByRole("button", { name: "Try an example" }).click();
+
+    const csv = await readDownload(page, async () => {
+      await page.getByRole("button", { name: "Download CSV" }).click();
+    });
+
+    expect(csv).toContain("GOAT Calculator: Savings scenario calculator");
+    expect(csv).toMatch(/Generated,.+\d{4}/);
+    expect(csv).toContain("Scenario A");
+    expect(csv).toContain("Scenario B");
+    expect(csv).toContain("Scenario C");
+    expect(csv).toContain(
+      "Scenario,Annual interest rate (%),Monthly contribution,Monthly account fee,Final balance,Estimated buying power in today's money,Total contributions,Total interest earned,Total fees deducted",
+    );
+    expect(csv).toContain("Scenario labels are for comparison only and are not predictions,Yes");
+    expect(csv).toContain(
+      "Month,Scenario A balance,Scenario A contribution,Scenario A interest,Scenario A fee,Scenario B balance",
+    );
+  });
+
   test("no financial values appear in the page URL after downloading", async ({ page }) => {
     await page.goto("/calculators/savings-goal");
     await page.getByLabel(/^Target balance/).fill("12345");
@@ -206,5 +229,26 @@ test.describe("Print-friendly view", () => {
     await expect(page.locator("header").first()).toBeHidden();
     await expect(page.getByRole("button", { name: "Print this result" })).toBeHidden();
     await expect(page.getByText("Months saved")).toBeVisible();
+  });
+
+  test("savings scenarios: print view hides chrome, forces assumptions open, and keeps the comparison", async ({ page }) => {
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByText("Not sure what to enter?").click();
+    await page.getByRole("button", { name: "Try an example" }).click();
+
+    const detailsWithAssumptions = page.locator("details", { has: page.getByText("Contribution timing") });
+    await expect(detailsWithAssumptions).not.toHaveJSProperty("open", true);
+
+    await page.emulateMedia({ media: "print" });
+    await expect(page.locator("header").first()).toBeHidden();
+    await expect(page.getByRole("button", { name: "Print this result" })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Download CSV" })).toBeHidden();
+
+    await page.evaluate(() => window.dispatchEvent(new Event("beforeprint")));
+    await expect(detailsWithAssumptions).toHaveJSProperty("open", true);
+    await expect(page.locator("dt", { hasText: "Contribution timing" })).toBeVisible();
+
+    await page.evaluate(() => window.dispatchEvent(new Event("afterprint")));
+    await expect(detailsWithAssumptions).toHaveJSProperty("open", false);
   });
 });

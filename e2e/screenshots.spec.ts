@@ -195,4 +195,63 @@ test.describe("Screenshots of key UI states", () => {
     await page.getByLabel(/^Extra monthly payment/).fill("50");
     await page.screenshot({ path: `${DIR}/20-loan-payoff-320.png`, fullPage: true });
   });
+
+  test("savings scenarios — full illustrative result at desktop width", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 2400 });
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByText("Not sure what to enter?").click();
+    await page.getByRole("button", { name: "Try an example" }).click();
+    await page.screenshot({ path: `${DIR}/21-savings-scenarios-result.png`, fullPage: true });
+  });
+
+  test("savings scenarios — after editing one example scenario, showing remaining example value notices", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 2400 });
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByText("Not sure what to enter?").click();
+    await page.getByRole("button", { name: "Try an example" }).click();
+    await page.getByRole("group", { name: "Scenario A" }).getByLabel(/^Annual interest rate/).fill("5");
+    await page.screenshot({ path: `${DIR}/22-savings-scenarios-residue.png`, fullPage: true });
+  });
+
+  test("savings scenarios — complete result at 320px", async ({ page }) => {
+    // Clipped to the calculator itself (inputs through the monthly
+    // schedule table), excluding the long static explanatory sections
+    // below it: at 320px wide, a full-page capture including those
+    // sections and a full schedule is tall enough that its extreme
+    // aspect ratio was rejected by the file upload step. The page has
+    // not been scrolled, so getBoundingClientRect() is already in
+    // document coordinates.
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByLabel(/^Starting balance/).fill("1000");
+    await page.getByLabel(/^Duration/).fill("12");
+    await page.getByRole("group", { name: "Scenario A" }).getByLabel(/^Annual interest rate/).fill("4");
+    await page.getByRole("group", { name: "Scenario A" }).getByLabel(/^Monthly contribution/).fill("100");
+    await page.getByRole("group", { name: "Scenario B" }).getByLabel(/^Annual interest rate/).fill("6");
+    await page.getByRole("group", { name: "Scenario B" }).getByLabel(/^Monthly contribution/).fill("125");
+    await page.getByRole("group", { name: "Scenario B" }).getByLabel(/^Monthly account fee/).fill("5");
+    await page.getByRole("group", { name: "Scenario C" }).getByLabel(/^Annual interest rate/).fill("8");
+    await page.getByRole("group", { name: "Scenario C" }).getByLabel(/^Monthly contribution/).fill("150");
+    await page.getByRole("group", { name: "Scenario C" }).getByLabel(/^Monthly account fee/).fill("10");
+
+    const methodologyHeading = page.getByRole("heading", { name: "How the comparison is calculated" });
+    const clipBottom = await methodologyHeading.evaluate((el) => el.getBoundingClientRect().top - 16);
+    await page.screenshot({
+      path: `${DIR}/23-savings-scenarios-320.png`,
+      fullPage: true,
+      clip: { x: 0, y: 0, width: 320, height: clipBottom },
+    });
+  });
+
+  test("savings scenarios — fee cap result", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1400 });
+    await page.goto("/calculators/savings-scenarios");
+    await page.getByLabel(/^Starting balance/).fill("5");
+    await page.getByLabel(/^Duration/).fill("1");
+    await page.getByRole("group", { name: "Scenario A" }).getByLabel(/^Annual interest rate/).fill("0");
+    await page.getByRole("group", { name: "Scenario A" }).getByLabel(/^Monthly account fee/).fill("10");
+    await page.getByRole("group", { name: "Scenario B" }).getByLabel(/^Annual interest rate/).fill("0");
+    await page.getByRole("group", { name: "Scenario C" }).getByLabel(/^Annual interest rate/).fill("0");
+    await page.screenshot({ path: `${DIR}/24-savings-scenarios-feecap.png`, fullPage: true });
+  });
 });

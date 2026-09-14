@@ -55,6 +55,17 @@ export const LOAN_PAYMENT_LIMITS = {
   months: { min: 0, max: 600 },
 } as const;
 
+export const SAVINGS_SCENARIOS_LIMITS = {
+  startingBalance: { min: 0, max: 10_000_000 },
+  /** Required, blank by default; a duration of 0 is not meaningful and is rejected. */
+  months: { min: 1, max: 600 },
+  rate: RATE_LIMITS,
+  monthlyContribution: { min: 0, max: 1_000_000 },
+  monthlyFee: { min: 0, max: 1_000_000 },
+  /** Used only to estimate buying power, never to change the projected balance. */
+  inflationRate: RATE_LIMITS,
+} as const;
+
 export const LOAN_PAYOFF_LIMITS = {
   currentBalance: { min: 0, max: 10_000_000 },
   rate: RATE_LIMITS,

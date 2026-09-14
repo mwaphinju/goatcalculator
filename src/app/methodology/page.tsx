@@ -339,6 +339,65 @@ export default function MethodologyPage() {
           </p>
         </section>
 
+        <section aria-labelledby="ss-heading">
+          <h2 id="ss-heading" className="mb-3 text-xl font-semibold text-navy">
+            Savings scenario calculator
+          </h2>
+          <p className="mb-3">
+            Projects up to three scenarios independently from a shared
+            starting balance and duration, one month at a time. Each
+            scenario uses its own annual interest rate, monthly
+            contribution, and monthly account fee, all chosen by the
+            visitor. The monthly calculation order depends on the shared
+            contribution timing:
+          </p>
+          <div className="mb-3 space-y-1 rounded-md border border-border bg-surface p-4 font-mono text-sm text-navy">
+            <p>
+              End of each month: balance after growth = B &times; (1 + i);
+              balance after contribution = balance after growth + C; ending
+              balance = greater of 0 and (balance after contribution &minus; fee)
+            </p>
+            <p>
+              Beginning of each month: balance after contribution = B + C;
+              balance after growth = balance after contribution &times; (1 + i);
+              ending balance = greater of 0 and (balance after growth &minus; fee)
+            </p>
+          </div>
+          <p className="mb-3">
+            The monthly rate <code>i</code> is the annual interest rate
+            divided by 100 and divided by 12. This calculator supports a
+            nominal annual rate compounded monthly only.
+          </p>
+          <p className="mb-3">
+            A scenario&apos;s monthly account fee is deducted after that
+            month&apos;s growth and contribution, capped at the balance
+            available so the balance never goes negative; the actual fee
+            deducted is reported and can be less than the fee entered. This
+            does not model account debt or overdraft charges.
+          </p>
+          <p className="mb-2">
+            Inflation never changes a scenario&apos;s projected account
+            balance. It is used only to estimate that balance&apos;s buying
+            power in today&apos;s money:
+          </p>
+          <div className="mb-3 rounded-md border border-border bg-surface p-4 font-mono text-sm text-navy">
+            <p>
+              Estimated buying power = final balance / (1 + annual
+              inflation rate / 100)^(duration in months / 12)
+            </p>
+          </div>
+          <p>
+            A value of 0 percent inflation leaves buying power equal to the
+            final balance exactly. Scenario names and every input are
+            assumptions the visitor chooses for comparison; they are never
+            a forecast, prediction, guarantee, or recommendation. This
+            calculator does not include taxes, changing rates, deposits
+            that vary over time, investment losses, account debt,
+            overdraft charges, withdrawal limits, or any fee other than the
+            single optional monthly fee entered for each scenario.
+          </p>
+        </section>
+
         <section aria-labelledby="disclaimer-heading">
           <h2 id="disclaimer-heading" className="mb-3 text-xl font-semibold text-navy">
             General disclaimer

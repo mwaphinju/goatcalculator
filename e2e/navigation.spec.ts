@@ -7,6 +7,7 @@ const IMPLEMENTED_CALCULATOR_ROUTES = [
   "/calculators/savings-comparison",
   "/calculators/loan-payment",
   "/calculators/loan-payoff",
+  "/calculators/savings-scenarios",
 ];
 
 test.describe("Direct navigation to implemented routes", () => {
@@ -76,6 +77,14 @@ test.describe("Direct navigation to implemented routes", () => {
     ).toBeVisible();
   });
 
+  test("/calculators/savings-scenarios loads directly", async ({ page }) => {
+    const response = await page.goto("/calculators/savings-scenarios");
+    expect(response?.status()).toBeLessThan(400);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Savings scenario calculator" }),
+    ).toBeVisible();
+  });
+
   test("/methodology loads directly", async ({ page }) => {
     const response = await page.goto("/methodology");
     expect(response?.status()).toBeLessThan(400);
@@ -88,7 +97,7 @@ test.describe("Direct navigation to implemented routes", () => {
     await expect(page).toHaveURL(/\/calculators\/compound-interest/);
   });
 
-  test("homepage links to all six calculators", async ({ page }) => {
+  test("homepage links to all seven calculators", async ({ page }) => {
     await page.goto("/");
     for (const route of IMPLEMENTED_CALCULATOR_ROUTES) {
       await expect(page.locator(`a[href='${route}']`).first()).toBeVisible();

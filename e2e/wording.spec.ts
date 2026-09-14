@@ -9,6 +9,7 @@ const ALL_PUBLIC_ROUTES = [
   "/calculators/savings-comparison",
   "/calculators/loan-payment",
   "/calculators/loan-payoff",
+  "/calculators/savings-scenarios",
   "/methodology",
 ];
 
@@ -42,6 +43,14 @@ const FORBIDDEN_CLAIMS = [
   "guaranteed approval",
   "refinance today",
   "apply now",
+  "best scenario",
+  "is recommended",
+  "we recommend",
+  "this will happen",
+  "the likely outcome",
+  "a safe return",
+  "a conservative forecast",
+  "an optimistic forecast",
 ];
 
 for (const route of ALL_PUBLIC_ROUTES) {
@@ -85,6 +94,7 @@ test.describe("Example mode label wording across every calculator that offers on
     "/calculators/savings-comparison",
     "/calculators/loan-payment",
     "/calculators/loan-payoff",
+    "/calculators/savings-scenarios",
   ];
 
   for (const route of calculatorsWithExample) {

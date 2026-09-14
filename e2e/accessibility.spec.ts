@@ -154,4 +154,36 @@ test.describe("Keyboard accessibility", () => {
     const after = await scrollRegion.evaluate((el) => el.scrollLeft);
     expect(after).toBeGreaterThan(before);
   });
+
+  test("savings scenarios: the scenario name field, rate field and comparison table scroll region are all reachable with the keyboard alone", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 700 });
+    await page.goto("/calculators/savings-scenarios");
+
+    // Located by its stable placeholder (the default name), not by the
+    // group's accessible name, since renaming the scenario changes that
+    // name and would otherwise invalidate the locator mid-test.
+    const nameField = page.locator('input[placeholder="Scenario A"]');
+    await nameField.focus();
+    await expect(nameField).toBeFocused();
+    await nameField.fill("My plan");
+    await expect(nameField).toHaveValue("My plan");
+    await expect(page.getByRole("heading", { name: "My plan" }).first()).toBeVisible();
+
+    const scenarioAGroup = nameField.locator("xpath=ancestor::div[@role='group'][1]");
+    const rateA = scenarioAGroup.getByLabel(/^Annual interest rate/);
+    await rateA.focus();
+    await rateA.fill("5");
+    await expect(rateA).toHaveValue("5");
+
+    await page.getByRole("group", { name: "Scenario B" }).getByLabel(/^Annual interest rate/).fill("5");
+    await page.getByRole("group", { name: "Scenario C" }).getByLabel(/^Annual interest rate/).fill("5");
+    await page.getByLabel(/^Duration/).fill("12");
+
+    const scrollRegion = page.getByRole("region", {
+      name: "Scenario comparison table, scrollable horizontally on narrow screens",
+    });
+    await expect(scrollRegion).toHaveAttribute("tabindex", "0");
+    await scrollRegion.focus();
+    await expect(scrollRegion).toBeFocused();
+  });
 });

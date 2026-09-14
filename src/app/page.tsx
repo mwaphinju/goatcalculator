@@ -74,6 +74,15 @@ export default function Home() {
           <h2 className="mb-1 font-semibold text-navy">Loan payoff</h2>
           <p className="text-sm text-navy-soft">See what extra payments could save you.</p>
         </Link>
+        <Link
+          href="/calculators/savings-scenarios"
+          className="rounded-lg border border-border bg-surface p-4 hover:border-teal"
+        >
+          <h2 className="mb-1 font-semibold text-navy">Savings scenarios</h2>
+          <p className="text-sm text-navy-soft">
+            Compare up to three savings possibilities using your own assumptions.
+          </p>
+        </Link>
       </div>
 
       <div className="grid gap-6 border-t border-border pt-10 sm:grid-cols-3">

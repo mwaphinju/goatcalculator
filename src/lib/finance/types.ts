@@ -124,6 +124,64 @@ export interface ComparisonResult {
   totalInterestDifference: string;
 }
 
+/**
+ * One assumption branch within the savings scenario calculator: a rate,
+ * monthly contribution and monthly account fee the visitor chooses for
+ * this scenario. Not a forecast, prediction or recommendation.
+ */
+export interface SavingsScenarioBranchInput {
+  /** Nominal annual interest rate expressed as a percent. >= 0. This calculator only supports a nominal rate compounded monthly. */
+  ratePercent: number;
+  /** >= 0. */
+  monthlyContribution: number;
+  /** Deducted after that month's growth and contribution. >= 0. */
+  monthlyFee: number;
+}
+
+/** A fully-validated, numeric input to the savings scenario calculator: one shared plan and exactly three scenario branches. */
+export interface SavingsScenariosInput {
+  /** >= 0. */
+  startingBalance: number;
+  /** Whole number of months to project. > 0, integer. */
+  months: number;
+  timing: ContributionTiming;
+  /** Annual inflation rate expressed as a percent, used only to estimate buying power, never to change the projected balance. 0 means no inflation adjustment. >= 0. */
+  inflationRatePercent: number;
+  scenarios: [SavingsScenarioBranchInput, SavingsScenarioBranchInput, SavingsScenarioBranchInput];
+}
+
+/** One row of a savings scenario's monthly schedule, as exact decimal strings. */
+export interface SavingsScenarioScheduleRow {
+  month: number;
+  startingBalance: string;
+  contribution: string;
+  interest: string;
+  /** The fee actually deducted this month, capped at the balance available so it never drives the balance negative. May be less than the entered monthly fee. */
+  feeDeducted: string;
+  endingBalance: string;
+}
+
+export interface SavingsScenarioResult {
+  startingBalance: string;
+  finalBalance: string;
+  totalContributions: string;
+  totalInterest: string;
+  /** Sum of fees actually deducted, which may be less than (monthlyFee * months) if the balance ran out. */
+  totalFeesDeducted: string;
+  /**
+   * finalBalance / (1 + inflationRatePercent / 100) ^ (months / 12): the
+   * final balance's estimated buying power in today's money. Equals
+   * finalBalance exactly when inflationRatePercent is 0. Never changes the
+   * projected account balance itself.
+   */
+  buyingPowerToday: string;
+  schedule: SavingsScenarioScheduleRow[];
+}
+
+export interface SavingsScenariosResult {
+  scenarios: [SavingsScenarioResult, SavingsScenarioResult, SavingsScenarioResult];
+}
+
 /** A fully-validated, numeric input to the loan payment calculator. */
 export interface LoanPaymentInput {
   /** Original loan amount ("P" in the formula). > 0. */
