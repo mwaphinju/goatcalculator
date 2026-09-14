@@ -96,6 +96,16 @@ test.describe("SEO metadata: canonical, Open Graph, Twitter card, and robots per
   }
 });
 
+test.describe("Google Search Console verification", () => {
+  test("the exact verification meta tag is present in the built static home page HTML", async ({ page }) => {
+    const response = await page.goto("/");
+    const html = await response!.text();
+    expect(html).toContain(
+      '<meta name="google-site-verification" content="FbGjH3iTfA12p2KIjWzm7PKhp-QXlYXeXGfRqKtEBF8"/>',
+    );
+  });
+});
+
 test.describe("robots.txt", () => {
   test("allows all public pages and references the sitemap", async ({ page }) => {
     const response = await page.goto("/robots.txt");
