@@ -10,7 +10,7 @@ services:
     branch: main
     buildCommand: npm ci && npm run build
     staticPublishPath: ./out
-    autoDeploy: true
+    autoDeployTrigger: commit
     headers:
       - path: /*
         name: X-Content-Type-Options
