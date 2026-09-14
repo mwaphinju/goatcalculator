@@ -21,6 +21,9 @@ export function SiteFooter() {
           <Link href="/calculators" className="rounded-sm hover:text-teal-dark">
             Calculators
           </Link>
+          <Link href="/guides" className="rounded-sm hover:text-teal-dark">
+            Guides
+          </Link>
           <Link href="/methodology" className="rounded-sm hover:text-teal-dark">
             Methodology
           </Link>

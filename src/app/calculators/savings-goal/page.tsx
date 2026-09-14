@@ -1,15 +1,52 @@
 import type { Metadata } from "next";
 import { SavingsGoalCalculator } from "@/components/savings-goal/SavingsGoalCalculator";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { RelatedLinks } from "@/components/shared/RelatedLinks";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema, calculatorSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description =
+  "Find out how much you would need to save each month to reach a target balance, with monthly compounding.";
+const path = "/calculators/savings-goal";
 
 export const metadata: Metadata = {
   title: "Savings Goal Calculator",
-  description:
-    "Find out how much you would need to save each month to reach a target balance, with monthly compounding.",
+  description,
+  alternates: {
+    canonical: absoluteUrl(path),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Savings Goal Calculator",
+    description,
+    url: absoluteUrl(path),
+  },
+  twitter: {
+    card: "summary",
+    title: "Savings Goal Calculator",
+    description,
+  },
 };
 
 export default function SavingsGoalPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <JsonLd data={calculatorSchema({ name: "Savings Goal Calculator", description, path })} />
+      <JsonLd
+        data={breadcrumbListSchema([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: "Savings goal calculator", path },
+        ])}
+      />
+      <Breadcrumbs
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Calculators", href: "/calculators" },
+          { name: "Savings goal calculator" },
+        ]}
+      />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Savings goal calculator
       </h1>
@@ -79,6 +116,18 @@ export default function SavingsGoalPage() {
             for the full list of what is and isn&apos;t modeled.
           </p>
         </section>
+      </div>
+
+      <div className="max-w-3xl">
+        <RelatedLinks
+          links={[
+            { href: "/calculators/savings-time", label: "Savings time calculator" },
+            { href: "/calculators/compound-interest", label: "Compound interest calculator" },
+            { href: "/calculators/savings-scenarios", label: "Savings scenario calculator" },
+            { href: "/guides/how-to-calculate-a-savings-goal", label: "Guide: how to calculate a savings goal" },
+            { href: "/guides/nominal-interest-rate-vs-apy", label: "Guide: nominal interest rate versus APY" },
+          ]}
+        />
       </div>
     </div>
   );

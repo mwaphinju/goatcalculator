@@ -1,9 +1,34 @@
+import type { Metadata } from "next";
 import Link from "next/link";
-import { siteConfig } from "@/lib/siteConfig";
+import { siteConfig, absoluteUrl } from "@/lib/siteConfig";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { websiteSchema } from "@/lib/structuredData";
+
+const description =
+  "Free, private financial calculators for compound interest, savings goals, loan payments and more, plus guides explaining how each one works. Runs entirely in your browser.";
+
+export const metadata: Metadata = {
+  description,
+  alternates: {
+    canonical: absoluteUrl("/"),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    description,
+    url: absoluteUrl("/"),
+  },
+  twitter: {
+    card: "summary",
+    title: `${siteConfig.name} | ${siteConfig.tagline}`,
+    description,
+  },
+};
 
 export default function Home() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6">
+      <JsonLd data={websiteSchema()} />
       <p className="mb-3 text-sm font-medium uppercase tracking-wide text-teal-dark">
         Free financial calculators
       </p>
@@ -83,6 +108,64 @@ export default function Home() {
             Compare up to three savings possibilities using your own assumptions.
           </p>
         </Link>
+      </div>
+
+      <div className="mb-10 border-t border-border pt-10">
+        <h2 className="mb-1 text-xl font-semibold text-navy">Guides</h2>
+        <p className="mb-4 text-sm text-navy-soft">
+          Plain-language explanations of the math behind these calculators,
+          each with a worked example.
+        </p>
+        <ul className="grid gap-3 sm:grid-cols-2">
+          <li>
+            <Link
+              href="/guides/compound-interest-explained"
+              className="block rounded-lg border border-border bg-surface p-4 hover:border-teal"
+            >
+              <span className="font-medium text-navy">Compound interest explained</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/guides/how-to-calculate-a-savings-goal"
+              className="block rounded-lg border border-border bg-surface p-4 hover:border-teal"
+            >
+              <span className="font-medium text-navy">How to calculate a savings goal</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/guides/how-extra-loan-payments-work"
+              className="block rounded-lg border border-border bg-surface p-4 hover:border-teal"
+            >
+              <span className="font-medium text-navy">How extra loan payments work</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/guides/nominal-interest-rate-vs-apy"
+              className="block rounded-lg border border-border bg-surface p-4 hover:border-teal"
+            >
+              <span className="font-medium text-navy">Nominal interest rate versus APY</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/guides/inflation-and-buying-power"
+              className="block rounded-lg border border-border bg-surface p-4 hover:border-teal"
+            >
+              <span className="font-medium text-navy">Inflation and buying power</span>
+            </Link>
+          </li>
+          <li>
+            <Link
+              href="/guides"
+              className="flex h-full items-center rounded-lg border border-dashed border-border p-4 text-sm font-medium text-teal-dark hover:border-teal"
+            >
+              See all guides
+            </Link>
+          </li>
+        </ul>
       </div>
 
       <div className="grid gap-6 border-t border-border pt-10 sm:grid-cols-3">

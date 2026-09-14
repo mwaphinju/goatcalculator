@@ -10,6 +10,14 @@ const IMPLEMENTED_CALCULATOR_ROUTES = [
   "/calculators/savings-scenarios",
 ];
 
+const IMPLEMENTED_GUIDE_ROUTES = [
+  "/guides/compound-interest-explained",
+  "/guides/how-to-calculate-a-savings-goal",
+  "/guides/how-extra-loan-payments-work",
+  "/guides/nominal-interest-rate-vs-apy",
+  "/guides/inflation-and-buying-power",
+];
+
 test.describe("Direct navigation to implemented routes", () => {
   test("home page loads", async ({ page }) => {
     const response = await page.goto("/");
@@ -84,6 +92,24 @@ test.describe("Direct navigation to implemented routes", () => {
       page.getByRole("heading", { level: 1, name: "Savings scenario calculator" }),
     ).toBeVisible();
   });
+
+  test("/guides loads and links to every implemented guide", async ({ page }) => {
+    const response = await page.goto("/guides");
+    expect(response?.status()).toBeLessThan(400);
+    await expect(page.getByRole("heading", { level: 1, name: "Guides" })).toBeVisible();
+    const links = page.locator("main a[href^='/guides/']");
+    await expect(links).toHaveCount(IMPLEMENTED_GUIDE_ROUTES.length);
+    const hrefs = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href")));
+    expect(new Set(hrefs)).toEqual(new Set(IMPLEMENTED_GUIDE_ROUTES));
+  });
+
+  for (const route of IMPLEMENTED_GUIDE_ROUTES) {
+    test(`${route} loads directly`, async ({ page }) => {
+      const response = await page.goto(route);
+      expect(response?.status()).toBeLessThan(400);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    });
+  }
 
   test("/methodology loads directly", async ({ page }) => {
     const response = await page.goto("/methodology");

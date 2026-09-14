@@ -1,15 +1,52 @@
 import type { Metadata } from "next";
 import { SavingsScenariosCalculator } from "@/components/savings-scenarios/SavingsScenariosCalculator";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { RelatedLinks } from "@/components/shared/RelatedLinks";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema, calculatorSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description =
+  "Compare up to three savings possibilities using assumptions you choose, including monthly contributions, account fees, and inflation.";
+const path = "/calculators/savings-scenarios";
 
 export const metadata: Metadata = {
   title: "Savings Scenario Calculator",
-  description:
-    "Compare up to three savings possibilities using assumptions you choose, including monthly contributions, account fees, and inflation.",
+  description,
+  alternates: {
+    canonical: absoluteUrl(path),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Savings Scenario Calculator",
+    description,
+    url: absoluteUrl(path),
+  },
+  twitter: {
+    card: "summary",
+    title: "Savings Scenario Calculator",
+    description,
+  },
 };
 
 export default function SavingsScenariosPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <JsonLd data={calculatorSchema({ name: "Savings Scenario Calculator", description, path })} />
+      <JsonLd
+        data={breadcrumbListSchema([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: "Savings scenario calculator", path },
+        ])}
+      />
+      <Breadcrumbs
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Calculators", href: "/calculators" },
+          { name: "Savings scenario calculator" },
+        ]}
+      />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Savings scenario calculator
       </h1>
@@ -114,6 +151,15 @@ export default function SavingsScenariosPage() {
             for the full list of what is and isn&apos;t modeled.
           </p>
         </section>
+      </div>
+
+      <div className="max-w-3xl">
+        <RelatedLinks
+          links={[
+            { href: "/calculators/savings-comparison", label: "Savings comparison calculator" },
+            { href: "/guides/inflation-and-buying-power", label: "Guide: inflation and buying power" },
+          ]}
+        />
       </div>
     </div>
   );

@@ -186,4 +186,16 @@ test.describe("Keyboard accessibility", () => {
     await scrollRegion.focus();
     await expect(scrollRegion).toBeFocused();
   });
+
+  test("a guide's breadcrumb links and related calculator links are reachable with the keyboard alone", async ({ page }) => {
+    await page.goto("/guides/compound-interest-explained");
+
+    const breadcrumbHome = page.locator('nav[aria-label="Breadcrumb"] a', { hasText: "Home" });
+    await breadcrumbHome.focus();
+    await expect(breadcrumbHome).toBeFocused();
+
+    const relatedLink = page.locator('nav[aria-label="Continue planning"] a').first();
+    await relatedLink.focus();
+    await expect(relatedLink).toBeFocused();
+  });
 });

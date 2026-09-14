@@ -19,6 +19,12 @@ export function SiteHeader() {
             Calculators
           </Link>
           <Link
+            href="/guides"
+            className="rounded-sm px-1.5 py-1 text-navy-soft hover:text-teal-dark sm:px-2"
+          >
+            Guides
+          </Link>
+          <Link
             href="/methodology"
             className="rounded-sm px-1.5 py-1 text-navy-soft hover:text-teal-dark sm:px-2"
           >

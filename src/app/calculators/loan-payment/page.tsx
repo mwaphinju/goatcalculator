@@ -1,15 +1,52 @@
 import type { Metadata } from "next";
 import { LoanPaymentCalculator } from "@/components/loan-payment/LoanPaymentCalculator";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { RelatedLinks } from "@/components/shared/RelatedLinks";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema, calculatorSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description =
+  "Estimate the monthly principal and interest payment on a loan with a fixed interest rate, with a full amortization schedule.";
+const path = "/calculators/loan-payment";
 
 export const metadata: Metadata = {
   title: "Loan Payment Calculator",
-  description:
-    "Estimate the monthly principal and interest payment on a loan with a fixed interest rate, with a full amortization schedule.",
+  description,
+  alternates: {
+    canonical: absoluteUrl(path),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Loan Payment Calculator",
+    description,
+    url: absoluteUrl(path),
+  },
+  twitter: {
+    card: "summary",
+    title: "Loan Payment Calculator",
+    description,
+  },
 };
 
 export default function LoanPaymentPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <JsonLd data={calculatorSchema({ name: "Loan Payment Calculator", description, path })} />
+      <JsonLd
+        data={breadcrumbListSchema([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: "Loan payment calculator", path },
+        ])}
+      />
+      <Breadcrumbs
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Calculators", href: "/calculators" },
+          { name: "Loan payment calculator" },
+        ]}
+      />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Loan payment calculator
       </h1>
@@ -98,6 +135,15 @@ export default function LoanPaymentPage() {
             for the full list of what is and isn&apos;t modeled.
           </p>
         </section>
+      </div>
+
+      <div className="max-w-3xl">
+        <RelatedLinks
+          links={[
+            { href: "/calculators/loan-payoff", label: "Loan payoff calculator" },
+            { href: "/guides/how-extra-loan-payments-work", label: "Guide: how extra loan payments work" },
+          ]}
+        />
       </div>
     </div>
   );

@@ -1,14 +1,41 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description = "Free financial calculators that run entirely in your browser.";
 
 export const metadata: Metadata = {
   title: "Calculators",
-  description: "Free financial calculators that run entirely in your browser.",
+  description,
+  alternates: {
+    canonical: absoluteUrl("/calculators"),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Calculators",
+    description,
+    url: absoluteUrl("/calculators"),
+  },
+  twitter: {
+    card: "summary",
+    title: "Calculators",
+    description,
+  },
 };
+
+const breadcrumbItems = [
+  { name: "Home", path: "/" },
+  { name: "Calculators", path: "/calculators" },
+];
 
 export default function CalculatorsPage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+      <JsonLd data={breadcrumbListSchema(breadcrumbItems)} />
+      <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Calculators" }]} />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Calculators
       </h1>

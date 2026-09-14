@@ -1,16 +1,53 @@
 import type { Metadata } from "next";
 import { SavingsTimeCalculator } from "@/components/savings-time/SavingsTimeCalculator";
 import { SAVINGS_TIME_LIMITS } from "@/lib/finance/limits";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { RelatedLinks } from "@/components/shared/RelatedLinks";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema, calculatorSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description =
+  "Find out how long it would take to reach a savings target, with monthly compounding and an optional monthly contribution.";
+const path = "/calculators/savings-time";
 
 export const metadata: Metadata = {
   title: "Savings Time Calculator",
-  description:
-    "Find out how long it would take to reach a savings target, with monthly compounding and an optional monthly contribution.",
+  description,
+  alternates: {
+    canonical: absoluteUrl(path),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Savings Time Calculator",
+    description,
+    url: absoluteUrl(path),
+  },
+  twitter: {
+    card: "summary",
+    title: "Savings Time Calculator",
+    description,
+  },
 };
 
 export default function SavingsTimePage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <JsonLd data={calculatorSchema({ name: "Savings Time Calculator", description, path })} />
+      <JsonLd
+        data={breadcrumbListSchema([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: "Savings time calculator", path },
+        ])}
+      />
+      <Breadcrumbs
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Calculators", href: "/calculators" },
+          { name: "Savings time calculator" },
+        ]}
+      />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Savings time calculator
       </h1>
@@ -74,6 +111,17 @@ export default function SavingsTimePage() {
             for the full list of what is and isn&apos;t modeled.
           </p>
         </section>
+      </div>
+
+      <div className="max-w-3xl">
+        <RelatedLinks
+          links={[
+            { href: "/calculators/savings-goal", label: "Savings goal calculator" },
+            { href: "/calculators/savings-comparison", label: "Savings comparison calculator" },
+            { href: "/calculators/compound-interest", label: "Compound interest calculator" },
+            { href: "/guides/nominal-interest-rate-vs-apy", label: "Guide: nominal interest rate versus APY" },
+          ]}
+        />
       </div>
     </div>
   );

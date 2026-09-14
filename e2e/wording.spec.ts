@@ -11,6 +11,12 @@ const ALL_PUBLIC_ROUTES = [
   "/calculators/loan-payoff",
   "/calculators/savings-scenarios",
   "/methodology",
+  "/guides",
+  "/guides/compound-interest-explained",
+  "/guides/how-to-calculate-a-savings-goal",
+  "/guides/how-extra-loan-payments-work",
+  "/guides/nominal-interest-rate-vs-apy",
+  "/guides/inflation-and-buying-power",
 ];
 
 const FORBIDDEN_HYPHENATED_TERMS = [

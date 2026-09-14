@@ -364,3 +364,38 @@ test.describe("Results position relative to inputs", () => {
     }
   });
 });
+
+test.describe("Phase 5 guide pages: usability at all required widths", () => {
+  const guideRoutes = [
+    "/guides",
+    "/guides/compound-interest-explained",
+    "/guides/how-to-calculate-a-savings-goal",
+    "/guides/how-extra-loan-payments-work",
+    "/guides/nominal-interest-rate-vs-apy",
+    "/guides/inflation-and-buying-power",
+  ];
+  const widths = [320, 390, 768, 1440];
+
+  for (const route of guideRoutes) {
+    for (const width of widths) {
+      test(`${route} has no horizontal overflow at ${width}px`, async ({ page }) => {
+        await page.setViewportSize({ width, height: 900 });
+        await page.goto(route);
+        const hasOverflow = await page.evaluate(
+          () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+        );
+        expect(hasOverflow).toBe(false);
+      });
+    }
+  }
+
+  test("a guide's worked-example table does not cause page overflow at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/guides/how-extra-loan-payments-work");
+    await expect(page.getByRole("heading", { name: "Worked example" })).toBeVisible();
+    const hasOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth > document.documentElement.clientWidth + 1,
+    );
+    expect(hasOverflow).toBe(false);
+  });
+});

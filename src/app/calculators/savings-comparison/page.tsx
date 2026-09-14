@@ -1,15 +1,52 @@
 import type { Metadata } from "next";
 import { SavingsComparisonCalculator } from "@/components/savings-comparison/SavingsComparisonCalculator";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { RelatedLinks } from "@/components/shared/RelatedLinks";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema, calculatorSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description =
+  "Compare two savings scenarios side by side to see what changes if you save more, save longer, or use a different rate.";
+const path = "/calculators/savings-comparison";
 
 export const metadata: Metadata = {
   title: "Savings Comparison Calculator",
-  description:
-    "Compare two savings scenarios side by side to see what changes if you save more, save longer, or use a different rate.",
+  description,
+  alternates: {
+    canonical: absoluteUrl(path),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Savings Comparison Calculator",
+    description,
+    url: absoluteUrl(path),
+  },
+  twitter: {
+    card: "summary",
+    title: "Savings Comparison Calculator",
+    description,
+  },
 };
 
 export default function SavingsComparisonPage() {
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6">
+      <JsonLd data={calculatorSchema({ name: "Savings Comparison Calculator", description, path })} />
+      <JsonLd
+        data={breadcrumbListSchema([
+          { name: "Home", path: "/" },
+          { name: "Calculators", path: "/calculators" },
+          { name: "Savings comparison calculator", path },
+        ])}
+      />
+      <Breadcrumbs
+        items={[
+          { name: "Home", href: "/" },
+          { name: "Calculators", href: "/calculators" },
+          { name: "Savings comparison calculator" },
+        ]}
+      />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Savings comparison calculator
       </h1>
@@ -69,6 +106,17 @@ export default function SavingsComparisonPage() {
             for the full list of what is and isn&apos;t modeled.
           </p>
         </section>
+      </div>
+
+      <div className="max-w-3xl">
+        <RelatedLinks
+          links={[
+            { href: "/calculators/savings-goal", label: "Savings goal calculator" },
+            { href: "/calculators/savings-scenarios", label: "Savings scenario calculator" },
+            { href: "/calculators/compound-interest", label: "Compound interest calculator" },
+            { href: "/guides/nominal-interest-rate-vs-apy", label: "Guide: nominal interest rate versus APY" },
+          ]}
+        />
       </div>
     </div>
   );

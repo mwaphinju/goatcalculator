@@ -254,4 +254,22 @@ test.describe("Screenshots of key UI states", () => {
     await page.getByRole("group", { name: "Scenario C" }).getByLabel(/^Annual interest rate/).fill("0");
     await page.screenshot({ path: `${DIR}/24-savings-scenarios-feecap.png`, fullPage: true });
   });
+
+  test("home page — improved calculator and guide discovery paths, desktop width", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 1900 });
+    await page.goto("/");
+    await page.screenshot({ path: `${DIR}/26-home-discovery-desktop.png`, fullPage: true });
+  });
+
+  test("guide page — compound interest explained, desktop width", async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 2000 });
+    await page.goto("/guides/compound-interest-explained");
+    await page.screenshot({ path: `${DIR}/27-guide-compound-interest-desktop.png`, fullPage: true });
+  });
+
+  test("guide page — compound interest explained, at 320px", async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto("/guides/compound-interest-explained");
+    await page.screenshot({ path: `${DIR}/28-guide-compound-interest-320.png`, fullPage: true });
+  });
 });

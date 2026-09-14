@@ -1,16 +1,44 @@
 import type { Metadata } from "next";
 import { COMPOUND_INTEREST_LIMITS } from "@/lib/finance/limits";
+import { Breadcrumbs } from "@/components/shared/Breadcrumbs";
+import { RelatedLinks } from "@/components/shared/RelatedLinks";
+import { JsonLd } from "@/components/shared/JsonLd";
+import { breadcrumbListSchema } from "@/lib/structuredData";
+import { absoluteUrl } from "@/lib/siteConfig";
+
+const description =
+  "How GOAT Calculator's tools work: the math, the assumptions, rounding rules, input limits, and privacy approach.";
 
 export const metadata: Metadata = {
   title: "Methodology",
-  description:
-    "How GOAT Calculator's tools work: the math, the assumptions, rounding rules, input limits, and privacy approach.",
+  description,
+  alternates: {
+    canonical: absoluteUrl("/methodology"),
+  },
+  openGraph: {
+    siteName: "GOAT Calculator",
+    title: "Methodology",
+    description,
+    url: absoluteUrl("/methodology"),
+  },
+  twitter: {
+    card: "summary",
+    title: "Methodology",
+    description,
+  },
 };
 
 export default function MethodologyPage() {
   const L = COMPOUND_INTEREST_LIMITS;
   return (
     <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
+      <JsonLd
+        data={breadcrumbListSchema([
+          { name: "Home", path: "/" },
+          { name: "Methodology", path: "/methodology" },
+        ])}
+      />
+      <Breadcrumbs items={[{ name: "Home", href: "/" }, { name: "Methodology" }]} />
       <h1 className="mb-2 text-3xl font-semibold tracking-tight text-navy">
         Methodology
       </h1>
@@ -410,6 +438,17 @@ export default function MethodologyPage() {
           </p>
         </section>
       </div>
+
+      <RelatedLinks
+        heading="Guides"
+        links={[
+          { href: "/guides/compound-interest-explained", label: "Compound interest explained" },
+          { href: "/guides/how-to-calculate-a-savings-goal", label: "How to calculate a savings goal" },
+          { href: "/guides/how-extra-loan-payments-work", label: "How extra loan payments work" },
+          { href: "/guides/nominal-interest-rate-vs-apy", label: "Nominal interest rate versus APY" },
+          { href: "/guides/inflation-and-buying-power", label: "Inflation and buying power" },
+        ]}
+      />
     </div>
   );
 }
